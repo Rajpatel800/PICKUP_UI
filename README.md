@@ -1,65 +1,203 @@
-# Pickup App UI Repository
+# Pickup — Customer App
 
-This repository contains the complete, production-ready React Native UI implementation for the Pickup App. It includes all 76 screens meticulously translated from the original Stitch designs into clean, heavily-typed, native React Native components.
+React Native + Expo customer app for the Pickup logistics platform, wired to the
+[Pickup-Go-Core-Engine](https://github.com/vickysingh009/Pickup-Go-Core-Engine)
+backend.
 
-## 🛠 Tech Stack & Environment
+Branches:
+- `main` — UI prototype (mock data, gallery of screens).
+- `UIwithEngine` — UI integrated with the real engine (**you are here**). Live
+  maps, real fare/driver/trip APIs, GPS pickup, live tracking.
 
-- **Framework**: React Native + Expo (SDK 54)
-- **Language**: TypeScript (Strict Mode Enabled)
-- **Navigation**: React Navigation (Native Stack)
-- **Styling**: Native `StyleSheet` objects + Centralized Theme Tokens
-- **Icons**: `@expo/vector-icons` (Feather & MaterialIcons)
+The Android driver app (`pickup-driver/`) is a separate Expo project used only
+for internal testing. It is **not** part of this repository; ask the project
+owner for it directly if you need to test the driver side.
 
-> **Note to Developers:** This repository has been explicitly downgraded to **Expo SDK 54** to guarantee compatibility with older versions of Expo Go (specifically version `54.0.8`). All dependencies are locked to their SDK-54 compatible versions.
+## Prerequisites
 
-## 📁 Repository Structure
+Every teammate needs these installed once:
 
-The architecture of the `src/` directory is logically grouped into specific domains:
+| Tool             | Version         | Notes                                          |
+| ---------------- | --------------- | ---------------------------------------------- |
+| Node.js          | 18.x or 20.x    | Match project's Expo SDK 54 requirements       |
+| Git              | any recent      | For cloning                                    |
+| Expo Go (phone)  | 54.0.8+         | iOS: App Store · Android: Play Store           |
+| A phone          | iOS or Android  | Testing happens on device, not simulator       |
 
-```text
-src/
-├── components/           # Reusable Atomic UI Components (Buttons, Cards, Badges, etc.)
-├── data/                 # Mock data used for visual testing and gallery representation
-├── navigation/           # React Navigation configurations (RootNavigator.tsx)
-├── screens/              # All 76 UI Screens logically grouped:
-│   ├── auth/             # Login, OTP Verification, Permissions
-│   ├── booking/          # Location selection, Vehicle selection, Fare estimates
-│   ├── home/             # Main application dashboard
-│   ├── logistics/        # Pickups, Drop-offs, Multi-drop flows, Goods details
-│   ├── payment/          # Payment methods, processing screens, receipts
-│   ├── profile/          # User settings, saved addresses, trip history
-│   ├── support/          # Error states, empty states, chat, cancellations
-│   └── tracking/         # Live map tracking, driver assignment states
-├── theme.ts              # Global design tokens (Colors, Typography, Spacing, Shadows)
-└── utils/                # Helper functions (e.g., responsive scaling)
-```
+You **do not** need Xcode, Android Studio, Java, or the platform SDKs. Expo Go
+runs the JS bundle over the tunnel.
 
-## 🚀 Getting Started
+## Two things the project owner must give you
 
-### 1. Installation
-Install the exact dependency versions:
+Both are secret and **not** in this repo:
+
+1. `EXPO_PUBLIC_API_BASE_URL` — the public HTTPS URL of the engine. Right now
+   this is a Cloudflare quick tunnel that changes every time the owner restarts
+   it (e.g. `https://bicycle-reaches-gzip-pet.trycloudflare.com`). Ask on the
+   team chat for the current one.
+2. `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` — a Google Maps Platform key with **Places
+   API (New)**, **Geocoding API** and **Directions API** enabled. Restricted by
+   platform + bundle id in the Google Cloud Console.
+
+If you want to run the engine yourself instead of using the shared tunnel, see
+[Running the engine locally](#running-the-engine-locally) below.
+
+## First-time setup
+
 ```bash
+# 1. clone and switch to the integrated branch
+git clone https://github.com/Rajpatel800/PICKUP_UI.git pickup
+cd pickup
+git checkout UIwithEngine
+
+# 2. install dependencies
 npm install
+
+# 3. create your .env from the template
+cp .env.example .env      # macOS / Linux
+copy .env.example .env    # Windows cmd
 ```
 
-### 2. Running the App
-To start the Expo bundler (using the local cache):
+Open `.env` and fill in the two values from the section above:
+
+```dotenv
+EXPO_PUBLIC_API_BASE_URL=https://<current-tunnel-or-your-own>.trycloudflare.com
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
+```
+
+## Running the app
+
 ```bash
-npm run start -- --lan -c
+# starts Metro with a public tunnel so any phone on any network can connect
+npm run start -- --tunnel -c
 ```
 
-> **Gallery Mode Enabled**: The current `App.tsx` is configured as a **Visual Gallery View**, allowing you to click through and view all 76 screens in an isolated environment. When you are ready to implement the real application logic, simply replace the `App.tsx` entry point to load the actual authentication/home stack instead of the gallery list.
+A QR code will show up in the terminal.
 
-## 🎨 Design System & Best Practices
+- **Android:** open Expo Go → "Scan QR code".
+- **iOS:** open the Camera app → point at the QR → tap the "Open in Expo Go"
+  banner. (Do **not** use Expo Go's built-in scanner on iOS 17+, it's
+  unreliable.)
 
-To maintain the high-quality UI across future updates, please adhere to these guidelines:
+The bundle will download once (30-60 s over tunnel) and the app opens.
 
-- **Theme Tokens**: Do NOT hardcode colors or spacing. Always import from `src/theme.ts` (e.g., `colors.primary`, `spacing.md`).
-- **Positioning**: Floating elements (like back buttons or bottom bars) use absolute positioning via explicit coordinates (`top: 0`, `bottom: 0`, etc.) to align perfectly with the original designs.
-- **Strict Typing**: The `tsconfig.json` has `strict: true` enabled. All screen props (especially variants for empty states or errors) are strictly typed.
+### If the QR won't connect
 
-## 📱 State of the Repo
-- **100% Native**: There are zero WebViews or HTML elements. Everything is built with highly performant native tags (`<View>`, `<Text>`, `<Pressable>`).
-- **TypeScript Checked**: The repository currently passes `npx tsc --noEmit` with **0 errors**.
+- Confirm your Expo Go is at least **54.0.8**. Older versions won't load an
+  SDK 54 project.
+- Try `npm run start -- --tunnel -c` — the `-c` clears Metro's cache, which
+  fixes most "stuck bundling" issues.
+- If Cloudflare's tunnel is flaky, restart with `npm run start` (LAN mode) but
+  then your phone must be on the same Wi-Fi as your laptop.
 
-Happy building! 🚀
+### Iterating
+
+- Change any file → Metro hot-reloads.
+- If a hook change doesn't take effect, **fully close and reopen Expo Go**
+  (swipe from recents). React Fast Refresh occasionally misses hook state.
+- If you edit `.env`, restart `npm run start` — env vars are baked at Metro
+  boot, not hot-reloaded.
+
+## Testing the full flow
+
+The engine has no seed data. To see anything meaningful:
+
+1. **Someone must be online as a driver.** Options:
+   - Run the driver app (`pickup-driver/`, ask the owner).
+   - Or run the driver simulator: `powershell scripts/driver-sim.ps1` from the
+     project root. This impersonates a driver via engine APIs so you can test
+     matching / assignment from the customer app alone.
+2. On the customer app: allow location permission → home screen shows a truck
+   marker for each online driver within 8 km.
+3. Tap **Start Booking** → search a drop location → step through vehicle,
+   goods, review → **Book**. The client-side matching loop offers the ride to
+   the nearest driver first.
+4. The driver accepts (from their app or the simulator prompt) → customer
+   flows through `DriverAssigned` → `PickupOtpVerification` → live tracking
+   → completion.
+
+## Running the engine locally
+
+If the shared tunnel is down or you want an isolated backend, you can host the
+engine yourself:
+
+```bash
+# clone the backend (separate repo)
+git clone https://github.com/vickysingh009/Pickup-Go-Core-Engine.git engine
+cd engine
+npm install
+npm run start:dev            # boots on http://localhost:3000
+```
+
+To expose it over the internet so your phone (on any network) can reach it,
+install [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+and run:
+
+```bash
+# from the pickup repo root:
+powershell scripts/tunnel.ps1
+```
+
+The script starts a quick tunnel, prints the new HTTPS URL, and updates both
+`.env` files (customer app + driver app if present) automatically. Then restart
+`npm run start` so Metro picks up the new URL.
+
+## Diagnostics
+
+Before pushing changes, verify nothing regressed:
+
+```bash
+npx tsc --noEmit                # 0 errors expected
+node scripts/check-wiring.js    # every screen reachable, no orphan routes
+node scripts/check-text-nodes.js # no stray "Text strings must be rendered..." bugs
+```
+
+Additional helpers in `scripts/`:
+
+- `smoke-engine.ps1` — hits every engine endpoint end-to-end
+- `check-maps-key.ps1` — verifies the Google Maps key has the right APIs enabled
+- `driver-sim.ps1` — headless driver for matching tests
+
+## Project structure
+
+```
+src/
+├── api/            # Engine, geocoding, directions, matching, typed HTTP
+├── components/     # Reusable UI (atoms/molecules/organisms) + MapCanvas
+├── config/         # env.ts — reads EXPO_PUBLIC_* into a typed shape
+├── data/           # Mock strings + recent-locations sample
+├── hooks/          # useNearbyDrivers, useTripStatus, useRoute, usePlaceSearch
+├── navigation/     # Route names, bottom-tab wiring
+├── screens/        # All 76 screens grouped by domain
+├── state/          # BookingContext, persisted customerId
+├── theme.ts        # colors, spacing, typography, borderRadius, shadows
+└── types/          # Shared type aliases
+```
+
+Rules for the codebase live in [`AGENTS.md`](AGENTS.md) — read that if you're
+touching any screen. Every wire between screens is documented in
+[`WIRING_MAP.md`](WIRING_MAP.md).
+
+## Common gotchas
+
+- **`Cannot find name 'DOMException'` in Metro logs** — Hermes doesn't ship
+  `DOMException`. The custom `AbortError` in `src/api/matching.ts` replaces it.
+  Don't reintroduce `DOMException` anywhere.
+- **Map recentres by itself** — `fitToMarkers` on the tracking screens only
+  refits when the marker _set_ changes (via `markerIdsKey`), not on every GPS
+  tick. Home has `fitToMarkers` disabled entirely so it never jumps.
+- **Driver offline → online → invisible on customer** — engine flips
+  `isAvailable` to false on ride accept but never back. The driver app has a
+  watchdog that re-flips it after trip completion. If you see a stuck driver,
+  they probably have an abandoned trip — check with
+  `curl <API>/trips/active/driver/<id>`.
+- **Customer sees no drivers** — pull up the "N drivers nearby" pill on Home;
+  it tells you if the API is unreachable, empty, or loading.
+
+## Publishing
+
+This app targets both stores (`com.pickup.customer`) and is **not** an MVP.
+Before any release build, work through the production checklist that lives
+alongside `AGENTS.md`. In particular, the Google Maps key needs to move behind
+the backend before the first store submission — it currently ships in the
+bundle.
