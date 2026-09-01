@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
   StyleSheet,
-  ImageBackground,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapCanvas, { type MapMarker } from '../../components/map/MapCanvas';
+import { reverseGeocode } from '../../api/geocoding';
+import type { GeoPoint } from '../../api/types';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
 
 export interface SelectDropLocationScreenProps {
   readonly onBack?: () => void;
@@ -17,31 +20,76 @@ export interface SelectDropLocationScreenProps {
   readonly onAddAnother?: () => void;
 }
 
-const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps> = ({
+const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps & { navigation?: any }> = ({
   onBack,
   onConfirm,
   onAddAnother,
+  navigation,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('Shastri Nagar, Jodhpur');
+  const { draft, commitPendingDrop, setPendingDrop } = useBooking();
+  // The address chosen in search; falls back to the last confirmed drop when
+  // this screen is reopened to review an existing stop.
+  const selectedPlace = draft.pendingDrop ?? draft.drops[draft.drops.length - 1];
+
+  const [searchQuery, setSearchQuery] = useState(selectedPlace?.address ?? '');
   const [instructions, setInstructions] = useState('');
   const insets = useSafeAreaInsets();
 
+  const dropLabel = `Drop ${draft.drops.length + (draft.pendingDrop ? 1 : 0)}`;
+
+  // Show the pickup as a marker so the user can see where they're going FROM.
+  const pickupMarker = useMemo<readonly MapMarker[]>(
+    () =>
+      draft.pickup
+        ? [{ id: 'pickup', kind: 'pickup', coordinate: draft.pickup, title: 'Pickup' }]
+        : [],
+    [draft.pickup]
+  );
+
+  // Panning the map picks a new drop location. Reverse-geocoding turns the
+  // coordinate under the centre pin into an address the user can read.
+  const handleRegionChange = useCallback(
+    (point: GeoPoint) => {
+      void (async () => {
+        let address = 'Dropped pin';
+        try {
+          const resolved = await reverseGeocode(point);
+          if (resolved) address = resolved;
+        } catch {
+          // Fine to fall through: the map fix is enough on its own.
+        }
+        setSearchQuery(address);
+        setPendingDrop({ ...point, address });
+      })();
+    },
+    [setPendingDrop]
+  );
+
+  const handleConfirm = () => {
+    commitPendingDrop();
+    onConfirm?.();
+    // Pickup is already set on HomeScreen, so go straight to the route review
+    // rather than asking for pickup again.
+    navigation?.navigate('MultiDropOverviewScreen');
+  };
+
   return (
     <View style={styles.container}>
-      {/* Map Canvas (Simulated via ImageBackground) */}
-      <ImageBackground
-        source={{
-          uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHX5v6oEO5mXpNSd790XoqMkOxo9EvFZ0x3NYamS_sp84oQY_T0sj08XoELN2rr9vbXpY6JP3yJyFwf15VVLn2QI0StttP4vjXa58XHNxIe_lEFxgvhMmxpwwWru2MJ4j74RMhRyj1L2YZ_6Esh5-5C5tLb2vlp8Uf-_lbE-h_FnnZtUy90VgWxdEiR7WEOOWMLV-sKepCW_bv7PMRcAeWYgRqvqRTmDL1Hl69AP9iAGkv1hZzS1yY',
-        }}
+      {/* Real map. The centre pin doubles as the drop selector; panning drives
+          reverse-geocoding and updates the pending drop shown in the sheet. */}
+      <MapCanvas
         style={styles.mapCanvas}
-        resizeMode="cover"
+        center={selectedPlace}
+        markers={pickupMarker}
+        showsUserLocation
+        onRegionChangeComplete={handleRegionChange}
       >
         {/* Top Controls Overlay */}
         <View style={[styles.topControls, { paddingTop: Math.max(insets.top, spacing.marginMobile) }]}>
           {/* Back Button */}
           <Pressable
             style={styles.backButton}
-            onPress={onBack}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
@@ -71,23 +119,16 @@ const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps> = ({
           </View>
         </View>
 
-        {/* Map Pin (Center) */}
-        <View style={styles.mapPinContainer}>
+        {/* Overlay centre marker: real map already renders pickup / drop
+            markers, but the fixed centre pin makes it clear that panning the
+            map picks the drop location. */}
+        <View style={styles.mapPinContainer} pointerEvents="none">
           <View style={styles.mapPin}>
             <Feather name="map-pin" size={24} color={colors.onPrimary} />
           </View>
           <View style={styles.mapPinDot} />
         </View>
-
-        {/* FAB (My Location) */}
-        <Pressable
-          style={styles.fab}
-          accessibilityRole="button"
-          accessibilityLabel="Center map"
-        >
-          <Feather name="crosshair" size={20} color={colors.onSurfaceVariant} />
-        </Pressable>
-      </ImageBackground>
+      </MapCanvas>
 
       {/* Bottom Information Panel */}
       <SafeAreaView edges={['bottom']} style={styles.bottomSheet}>
@@ -99,8 +140,10 @@ const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps> = ({
         <View style={styles.sheetContent}>
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.dropIndex}>Drop 1</Text>
-            <Text style={styles.locationTitle}>Shastri Nagar, Jodhpur</Text>
+            <Text style={styles.dropIndex}>{dropLabel}</Text>
+            <Text style={styles.locationTitle} numberOfLines={2}>
+              {selectedPlace?.address ?? 'No location selected'}
+            </Text>
           </View>
 
           {/* Instructions Input */}
@@ -119,7 +162,7 @@ const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps> = ({
           <View style={styles.actionsContainer}>
             <Pressable
               style={styles.addDropButton}
-              onPress={onAddAnother}
+              onPress={() => (onAddAnother ? onAddAnother() : navigation?.navigate('MultiDropOverviewScreen'))}
               accessibilityRole="button"
             >
               <Feather name="plus" size={18} color={colors.primary} />
@@ -128,7 +171,8 @@ const SelectDropLocationScreen: React.FC<SelectDropLocationScreenProps> = ({
 
             <Pressable
               style={styles.confirmButton}
-              onPress={onConfirm}
+              onPress={handleConfirm}
+              disabled={!selectedPlace}
               accessibilityRole="button"
             >
               <Text style={styles.confirmText}>CONFIRM DROP</Text>

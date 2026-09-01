@@ -32,10 +32,11 @@ const CASH_PAYMENT_METHODS = [
   },
 ];
 
-const CashPaymentStatusScreen: React.FC<CashPaymentStatusScreenProps> = ({
+const CashPaymentStatusScreen: React.FC<CashPaymentStatusScreenProps & { navigation?: any }> = ({
   amount = '340',
   onContinue,
   onBack,
+  navigation,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<string>('cod');
 
@@ -43,7 +44,10 @@ const CashPaymentStatusScreen: React.FC<CashPaymentStatusScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Payment</Text>
@@ -121,7 +125,10 @@ const CashPaymentStatusScreen: React.FC<CashPaymentStatusScreenProps> = ({
       <View style={styles.bottomActions}>
         <Button
           label="CONFIRM PAYMENT METHOD"
-          onPress={() => onContinue?.(selectedMethod)}
+          onPress={() => {
+            onContinue?.(selectedMethod);
+            navigation?.navigate('PaymentSuccessfulScreen');
+          }}
           variant="primary"
           fullWidth
           size="lg"

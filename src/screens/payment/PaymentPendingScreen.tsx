@@ -18,11 +18,12 @@ export interface PaymentPendingScreenProps {
   readonly onCancelPayment?: () => void;
 }
 
-const PaymentPendingScreen: React.FC<PaymentPendingScreenProps> = ({
+const PaymentPendingScreen: React.FC<PaymentPendingScreenProps & { navigation?: any }> = ({
   amount = '₹ 340',
   onClose,
   onCheckStatus,
   onCancelPayment,
+  navigation,
 }) => {
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -64,7 +65,10 @@ const PaymentPendingScreen: React.FC<PaymentPendingScreenProps> = ({
       <View style={styles.container}>
         {/* Top App Bar */}
         <View style={styles.header}>
-          <Pressable style={styles.iconButton} onPress={onClose}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onClose ? onClose() : navigation?.goBack())}
+          >
             <Feather name="x" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Pick Up</Text>
@@ -113,12 +117,22 @@ const PaymentPendingScreen: React.FC<PaymentPendingScreenProps> = ({
 
           {/* Actions */}
           <View style={styles.actionContainer}>
-            <Pressable style={styles.checkButton} onPress={onCheckStatus}>
+            <Pressable
+              style={styles.checkButton}
+              onPress={() =>
+                onCheckStatus ? onCheckStatus() : navigation?.navigate('PaymentSuccessfulScreen')
+              }
+            >
               <Feather name="refresh-cw" size={20} color={colors.onPrimary} />
               <Text style={styles.checkButtonText}>Check Status</Text>
             </Pressable>
             
-            <Pressable style={styles.cancelButton} onPress={onCancelPayment}>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() =>
+                onCancelPayment ? onCancelPayment() : navigation?.navigate('PaymentFailedScreen')
+              }
+            >
               <Text style={styles.cancelButtonText}>Cancel Payment</Text>
             </Pressable>
           </View>

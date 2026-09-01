@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { strings, mockVehicleTypes } from '../../data/mockData';
+import { useBooking } from '../../state/BookingContext';
 import TopAppBar from '../../components/organisms/TopAppBar';
 import VehicleOptionCard from '../../components/molecules/VehicleOptionCard';
 import Button from '../../components/atoms/Button';
@@ -13,27 +14,25 @@ export interface SelectVehicleScreenProps {
   readonly onHelp?: () => void;
 }
 
-const SelectVehicleScreen: React.FC<SelectVehicleScreenProps> = ({
+const SelectVehicleScreen: React.FC<SelectVehicleScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
   onHelp,
+  navigation,
 }) => {
+  const { setVehicleType } = useBooking();
   const [selectedId, setSelectedId] = useState<string>('mini-truck');
 
   const selectedVehicle = mockVehicleTypes.find((v) => v.id === selectedId);
-
-  const handleContinue = useCallback(() => {
-    onContinue?.(selectedId);
-  }, [selectedId, onContinue]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopAppBar
         title={strings.booking.selectVehicle}
         leadingIcon={<Text style={styles.backIcon}>←</Text>}
-        onLeadingPress={onBack}
+        onLeadingPress={() => (onBack ? onBack() : navigation?.goBack())}
         trailingIcon={<Text style={styles.helpText}>Help</Text>}
-        onTrailingPress={onHelp}
+        onTrailingPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
       />
 
       <View style={styles.subtitleContainer}>
@@ -64,7 +63,15 @@ const SelectVehicleScreen: React.FC<SelectVehicleScreenProps> = ({
 
       {/* Bottom CTA */}
       <View style={styles.footer}>
-        <View style={styles.footerContent}>
+        <Pressable
+          style={styles.footerContent}
+          onPress={() => {
+            // The engine stores vehicleType on the ride; keep the label, not the id.
+            setVehicleType(selectedVehicle?.name ?? selectedId);
+            onContinue?.(selectedId);
+            navigation?.navigate('GoodsDetailsScreen');
+          }}
+        >
           <Text style={styles.ctaLabel}>CONTINUE</Text>
           <View style={styles.priceRow}>
             <Text style={styles.priceText}>
@@ -72,7 +79,7 @@ const SelectVehicleScreen: React.FC<SelectVehicleScreenProps> = ({
             </Text>
             <Text style={styles.arrowIcon}>→</Text>
           </View>
-        </View>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

@@ -21,11 +21,12 @@ export interface ReceiverDetailsScreenProps {
   readonly onContinue?: (data: { name: string; phone: string; instructions: string }) => void;
 }
 
-const ReceiverDetailsScreen: React.FC<ReceiverDetailsScreenProps> = ({
+const ReceiverDetailsScreen: React.FC<ReceiverDetailsScreenProps & { navigation?: any }> = ({
   dropNumber = 1,
   dropAddress = 'Shastri Nagar, Jodhpur',
   onBack,
   onContinue,
+  navigation,
 }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -43,7 +44,11 @@ const ReceiverDetailsScreen: React.FC<ReceiverDetailsScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          accessibilityRole="button"
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Delivery</Text>
@@ -121,7 +126,10 @@ const ReceiverDetailsScreen: React.FC<ReceiverDetailsScreenProps> = ({
         <View style={styles.footer}>
           <Button
             label="CONTINUE"
-            onPress={handleContinue}
+            onPress={() => {
+              handleContinue();
+              navigation?.navigate('FareEstimateScreen');
+            }}
             variant="primary"
             disabled={isContinueDisabled}
             fullWidth

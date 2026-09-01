@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { BookingProvider } from './src/state/BookingContext';
 
 import ActiveTripChatScreen from './src/screens/support/ActiveTripChatScreen';
 import ActiveTripTrackingScreen from './src/screens/tracking/ActiveTripTrackingScreen';
@@ -17,6 +18,8 @@ import CancellationConfirmationScreen from './src/screens/support/CancellationCo
 import CancellationReasonScreen from './src/screens/support/CancellationReasonScreen';
 import CancellationResultScreen from './src/screens/support/CancellationResultScreen';
 import CashPaymentStatusScreen from './src/screens/payment/CashPaymentStatusScreen';
+import ChangeProfilePhotoScreen from './src/screens/profile/ChangeProfilePhotoScreen';
+import CreateProfileScreen from './src/screens/profile/CreateProfileScreen';
 import CurrentDropDetailsScreen from './src/screens/logistics/CurrentDropDetailsScreen';
 import CustomerLiveTrackingScreen from './src/screens/tracking/CustomerLiveTrackingScreen';
 import CustomerSettingsScreen from './src/screens/profile/CustomerSettingsScreen';
@@ -28,6 +31,7 @@ import DriverFoundScreen from './src/screens/tracking/DriverFoundScreen';
 import DriverRatingScreen from './src/screens/support/DriverRatingScreen';
 import DropCompletedStateScreen from './src/screens/logistics/DropCompletedStateScreen';
 import DropOtpVerificationScreen from './src/screens/logistics/DropOtpVerificationScreen';
+import EditProfileScreen from './src/screens/profile/EditProfileScreen';
 import EmptyStateScreen from './src/screens/support/EmptyStateScreen';
 import ErrorScreen from './src/screens/support/ErrorScreen';
 import FareEstimateScreen from './src/screens/booking/FareEstimateScreen';
@@ -84,13 +88,38 @@ import WrittenReviewScreen from './src/screens/support/WrittenReviewScreen';
 
 const Stack = createNativeStackNavigator();
 
+/**
+ * Wrappers for screens that require props beyond `navigation`.
+ * Declared at module scope (not inline in `component={...}`) so React Navigation
+ * keeps a stable component identity and forwards `navigation`/`route` through.
+ */
+function PermissionRoute(props: any) {
+  return <PermissionScreen variant="location" {...props} />;
+}
+
+function EmptyStateRoute(props: any) {
+  return (
+    <EmptyStateScreen
+      title="No trips yet"
+      description="Your completed and cancelled trips will show up here."
+      buttonText="Start Booking"
+      {...props}
+      onButtonPress={() => props.navigation?.navigate('AddressSearchScreen')}
+    />
+  );
+}
+
+function ErrorRoute(props: any) {
+  return <ErrorScreen variant="noInternet" {...props} />;
+}
+
 function GalleryScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.galleryContainer}>
       <Text style={styles.header}>Screen Gallery (76 Screens)</Text>
       <FlatList
         data={[
-          'ActiveTripChatScreen', 'ActiveTripTrackingScreen', 'AddressSearchScreen', 'AssignmentFailedScreen', 'BookingConfirmedScreen', 'BookingReviewScreen', 'CallDriverScreen', 'CancellationChargeConfirmationScreen', 'CancellationConfirmationScreen', 'CancellationReasonScreen', 'CancellationResultScreen', 'CashPaymentStatusScreen', 'CurrentDropDetailsScreen', 'CustomerLiveTrackingScreen', 'CustomerSettingsScreen', 'DeclaredValueSelectionScreen', 'DigitalReceiptScreen', 'DriverAssignedExpandedScreen', 'DriverAssignedScreen', 'DriverFoundScreen', 'DriverRatingScreen', 'DropCompletedStateScreen', 'DropOtpVerificationScreen', 'EmptyStateScreen', 'ErrorScreen', 'FareEstimateScreen', 'FinalDeliverySummaryScreen', 'FindingDriverScreen', 'GoodsDetailsScreen', 'GoodsInsuranceScreen', 'HistoricalTripDetailScreen', 'HomeScreen', 'LiveTrackingExceptionsScreen', 'LiveTrackingScreen', 'LoadingSkeletonScreen', 'LoginScreen', 'LogoutConfirmationScreen', 'MapLoadingScreen', 'MultiDropOverviewScreen', 'MultiDropProgressScreen', 'NetworkErrorScreen', 'NextDropScreen', 'NoDriversAvailableScreen', 'NotificationCenterScreen', 'OtpVerificationScreen', 'PaymentConfirmationScreen', 'PaymentFailedScreen', 'PaymentMethodScreen', 'PaymentMethodSelectedScreen', 'PaymentPendingScreen', 'PaymentProcessingScreen', 'PaymentSelectionScreen', 'PaymentSuccessfulScreen', 'PermissionScreen', 'PickupOtpVerificationScreen', 'PickupVerifiedSuccessScreen', 'ProfileScreen', 'ReceiverDetailsScreen', 'ReconnectingScreen', 'RecordingConsentScreen', 'ReviewBookingScreen', 'RouteUnavailableScreen', 'SavedAddressesScreen', 'SearchingDriverScreen', 'SearchUnavailableScreen', 'SelectDropLocationScreen', 'SelectLocationScreen', 'SelectVehicleScreen', 'ShareTrackingSheetScreen', 'TripCancelledStatusScreen', 'TripCompletedScreen', 'TripCompletedSummaryScreen', 'TripHistoryScreen', 'ValidateBookingScreen', 'VehicleSelectionScreen', 'WrittenReviewScreen'
+          'ActiveTripChatScreen', 'ActiveTripTrackingScreen', 'AddressSearchScreen', 'AssignmentFailedScreen', 'BookingConfirmedScreen', 'BookingReviewScreen', 'CallDriverScreen', 'CancellationChargeConfirmationScreen', 'CancellationConfirmationScreen', 'CancellationReasonScreen', 'CancellationResultScreen', 'CashPaymentStatusScreen', 'ChangeProfilePhotoScreen', 'CreateProfileScreen', 'CurrentDropDetailsScreen', 'CustomerLiveTrackingScreen', 'CustomerSettingsScreen', 'DeclaredValueSelectionScreen', 'DigitalReceiptScreen', 'DriverAssignedExpandedScreen', 'DriverAssignedScreen', 'DriverFoundScreen', 'DriverRatingScreen', 'DropCompletedStateScreen', 'DropOtpVerificationScreen', 'EditProfileScreen', 'EmptyStateScreen', 'ErrorScreen', 'FareEstimateScreen', 'FinalDeliverySummaryScreen', 'FindingDriverScreen', 'GoodsDetailsScreen', 'GoodsInsuranceScreen', 'HistoricalTripDetailScreen', 'HomeScreen', 'LiveTrackingExceptionsScreen', 'LiveTrackingScreen', 'LoadingSkeletonScreen', 'LoginScreen', 'LogoutConfirmationScreen', 'MapLoadingScreen', 'MultiDropOverviewScreen', 'MultiDropProgressScreen', 'NetworkErrorScreen', 'NextDropScreen', 'NoDriversAvailableScreen', 'NotificationCenterScreen', 'OtpVerificationScreen', 'PaymentConfirmationScreen', 'PaymentFailedScreen', 'PaymentMethodScreen', 'PaymentMethodSelectedScreen', 'PaymentPendingScreen', 'PaymentProcessingScreen', 'PaymentSelectionScreen', 'PaymentSuccessfulScreen', 'PermissionScreen', 'PickupOtpVerificationScreen', 'PickupVerifiedSuccessScreen', 'ProfileScreen', 'ReceiverDetailsScreen', 'ReconnectingScreen', 'RecordingConsentScreen', 'ReviewBookingScreen', 'RouteUnavailableScreen', 'SavedAddressesScreen', 'SearchingDriverScreen', 'SearchUnavailableScreen', 'SelectDropLocationScreen', 'SelectLocationScreen', 'SelectVehicleScreen', 'ShareTrackingSheetScreen', 'TripCancelledStatusScreen', 'TripCompletedScreen', 'TripCompletedSummaryScreen', 'TripHistoryScreen', 'ValidateBookingScreen', 'VehicleSelectionScreen', 'WrittenReviewScreen'
         ]}
         keyExtractor={item => item}
         renderItem={({item}) => (
@@ -107,8 +136,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <BookingProvider>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="LoginScreen">
           <Stack.Screen name="Gallery" component={GalleryScreen} />
         <Stack.Screen name="ActiveTripChatScreen" component={ActiveTripChatScreen} />
         <Stack.Screen name="ActiveTripTrackingScreen" component={ActiveTripTrackingScreen} />
@@ -122,6 +152,13 @@ export default function App() {
         <Stack.Screen name="CancellationReasonScreen" component={CancellationReasonScreen} />
         <Stack.Screen name="CancellationResultScreen" component={CancellationResultScreen} />
         <Stack.Screen name="CashPaymentStatusScreen" component={CashPaymentStatusScreen} />
+        {/* Bottom-sheet screen: presented over the previous screen so its scrim reads as an overlay. */}
+        <Stack.Screen
+          name="ChangeProfilePhotoScreen"
+          component={ChangeProfilePhotoScreen}
+          options={{ presentation: 'transparentModal', animation: 'fade' }}
+        />
+        <Stack.Screen name="CreateProfileScreen" component={CreateProfileScreen} />
         <Stack.Screen name="CurrentDropDetailsScreen" component={CurrentDropDetailsScreen} />
         <Stack.Screen name="CustomerLiveTrackingScreen" component={CustomerLiveTrackingScreen} />
         <Stack.Screen name="CustomerSettingsScreen" component={CustomerSettingsScreen} />
@@ -133,8 +170,9 @@ export default function App() {
         <Stack.Screen name="DriverRatingScreen" component={DriverRatingScreen} />
         <Stack.Screen name="DropCompletedStateScreen" component={DropCompletedStateScreen} />
         <Stack.Screen name="DropOtpVerificationScreen" component={DropOtpVerificationScreen} />
-        <Stack.Screen name="EmptyStateScreen" component={EmptyStateScreen} />
-        <Stack.Screen name="ErrorScreen" component={() => <ErrorScreen variant="network" />} />
+        <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
+        <Stack.Screen name="EmptyStateScreen" component={EmptyStateRoute} />
+        <Stack.Screen name="ErrorScreen" component={ErrorRoute} />
         <Stack.Screen name="FareEstimateScreen" component={FareEstimateScreen} />
         <Stack.Screen name="FinalDeliverySummaryScreen" component={FinalDeliverySummaryScreen} />
         <Stack.Screen name="FindingDriverScreen" component={FindingDriverScreen} />
@@ -163,7 +201,7 @@ export default function App() {
         <Stack.Screen name="PaymentProcessingScreen" component={PaymentProcessingScreen} />
         <Stack.Screen name="PaymentSelectionScreen" component={PaymentSelectionScreen} />
         <Stack.Screen name="PaymentSuccessfulScreen" component={PaymentSuccessfulScreen} />
-        <Stack.Screen name="PermissionScreen" component={() => <PermissionScreen variant="location" />} />
+        <Stack.Screen name="PermissionScreen" component={PermissionRoute} />
         <Stack.Screen name="PickupOtpVerificationScreen" component={PickupOtpVerificationScreen} />
         <Stack.Screen name="PickupVerifiedSuccessScreen" component={PickupVerifiedSuccessScreen} />
         <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
@@ -188,6 +226,7 @@ export default function App() {
         <Stack.Screen name="WrittenReviewScreen" component={WrittenReviewScreen} />
         </Stack.Navigator>
       </NavigationContainer>
+      </BookingProvider>
     </SafeAreaProvider>
   );
 }

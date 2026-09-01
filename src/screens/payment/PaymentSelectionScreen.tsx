@@ -13,9 +13,10 @@ export interface PaymentSelectionScreenProps {
   readonly onSelect?: (paymentId: string) => void;
 }
 
-const PaymentSelectionScreen: React.FC<PaymentSelectionScreenProps> = ({
+const PaymentSelectionScreen: React.FC<PaymentSelectionScreenProps & { navigation?: any }> = ({
   onBack,
   onSelect,
+  navigation,
 }) => {
   const [selectedId, setSelectedId] = useState<string>(
     mockPaymentMethods.find((m) => m.isDefault)?.id ?? ''
@@ -26,7 +27,7 @@ const PaymentSelectionScreen: React.FC<PaymentSelectionScreenProps> = ({
       <TopAppBar
         title={strings.payment.selectPayment}
         leadingIcon={<Text style={styles.backIcon}>←</Text>}
-        onLeadingPress={onBack}
+        onLeadingPress={() => (onBack ? onBack() : navigation?.goBack())}
       />
 
       <ScrollView
@@ -43,20 +44,17 @@ const PaymentSelectionScreen: React.FC<PaymentSelectionScreenProps> = ({
                   styles.paymentRow,
                   selectedId === method.id && styles.paymentRowSelected,
                 ]}
-                onPress={() => setSelectedId(method.id)}
+                onPress={() => {
+                  setSelectedId(method.id);
+                  onSelect?.(method.id);
+                }}
                 accessibilityRole="radio"
                 accessibilityLabel={method.label}
                 accessibilityState={{ selected: selectedId === method.id }}
               >
                 <View style={styles.paymentIcon}>
                   <Text style={styles.paymentIconText}>
-                    {method.type === 'upi'
-                      ? '🏦'
-                      : method.type === 'card'
-                      ? '💳'
-                      : method.type === 'wallet'
-                      ? '👛'
-                      : '💵'}
+                    {method.type === 'upi' ? '🏦' : method.type === 'card' ? '💳' : '💵'}
                   </Text>
                 </View>
                 <View style={styles.paymentInfo}>
@@ -82,7 +80,7 @@ const PaymentSelectionScreen: React.FC<PaymentSelectionScreenProps> = ({
       <View style={styles.footer}>
         <Button
           label="Continue"
-          onPress={() => onSelect?.(selectedId)}
+          onPress={() => navigation?.navigate('PaymentMethodScreen')}
           variant="primary"
           size="lg"
           fullWidth

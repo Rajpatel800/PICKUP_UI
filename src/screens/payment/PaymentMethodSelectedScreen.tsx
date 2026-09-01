@@ -24,7 +24,7 @@ export interface PaymentMethodSelectedScreenProps {
   readonly onBack?: () => void;
 }
 
-const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps> = ({
+const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps & { navigation?: any }> = ({
   tripTitle = 'Ride to Downtown',
   tripDate = 'Today, 2:30 PM',
   baseFare = '₹ 300',
@@ -35,12 +35,16 @@ const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps> = 
   onChangeMethod,
   onPay,
   onBack,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Payment</Text>
@@ -83,7 +87,7 @@ const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps> = 
           <View style={styles.methodCard}>
             <View style={styles.methodLeft}>
               <View style={styles.methodIconBox}>
-                <MaterialIcons name="account-balance-wallet" size={20} color={colors.primary} />
+                <MaterialIcons name="account-balance" size={20} color={colors.primary} />
               </View>
               <View style={styles.methodTextContainer}>
                 <Text style={styles.methodName}>{methodName}</Text>
@@ -91,7 +95,10 @@ const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps> = 
               </View>
             </View>
             
-            <Pressable style={styles.changeBtn} onPress={onChangeMethod}>
+            <Pressable
+              style={styles.changeBtn}
+              onPress={() => (onChangeMethod ? onChangeMethod() : navigation?.goBack())}
+            >
               <Text style={styles.changeBtnText}>Change</Text>
             </Pressable>
           </View>
@@ -108,7 +115,10 @@ const PaymentMethodSelectedScreen: React.FC<PaymentMethodSelectedScreenProps> = 
       <View style={styles.bottomActions}>
         <Button
           label={`Pay ${total}`}
-          onPress={() => onPay?.()}
+          onPress={() => {
+            onPay?.();
+            navigation?.navigate('PaymentProcessingScreen');
+          }}
           variant="primary"
           fullWidth
           size="lg"

@@ -20,12 +20,13 @@ export interface DriverAssignedExpandedScreenProps {
   readonly onCancelBooking?: () => void;
 }
 
-const DriverAssignedExpandedScreen: React.FC<DriverAssignedExpandedScreenProps> = ({
+const DriverAssignedExpandedScreen: React.FC<DriverAssignedExpandedScreenProps & { navigation?: any }> = ({
   onBack,
   onTrackDriver,
   onCallDriver,
   onChatDriver,
   onCancelBooking,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -34,7 +35,7 @@ const DriverAssignedExpandedScreen: React.FC<DriverAssignedExpandedScreenProps> 
         <View style={styles.headerLeft}>
           <Pressable
             style={styles.iconButton}
-            onPress={onBack}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
             accessibilityRole="button"
           >
             <Feather name="arrow-left" size={22} color={colors.onSurfaceVariant} />
@@ -115,15 +116,27 @@ const DriverAssignedExpandedScreen: React.FC<DriverAssignedExpandedScreenProps> 
 
             {/* Communication Actions */}
             <View style={styles.communicationActions}>
-              <Pressable style={styles.trackButton} onPress={onTrackDriver}>
+              <Pressable
+                style={styles.trackButton}
+                onPress={() => (onTrackDriver ? onTrackDriver() : navigation?.navigate('CustomerLiveTrackingScreen'))}
+                accessibilityRole="button"
+              >
                 <Text style={styles.trackButtonText}>Track Driver</Text>
               </Pressable>
               
-              <Pressable style={styles.iconActionButton} onPress={onCallDriver}>
+              <Pressable
+                style={styles.iconActionButton}
+                onPress={() => (onCallDriver ? onCallDriver() : navigation?.navigate('CallDriverScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="phone" size={20} color={colors.onSecondaryContainer} />
               </Pressable>
               
-              <Pressable style={styles.iconActionButton} onPress={onChatDriver}>
+              <Pressable
+                style={styles.iconActionButton}
+                onPress={() => (onChatDriver ? onChatDriver() : navigation?.navigate('ActiveTripChatScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="message-circle" size={20} color={colors.onSecondaryContainer} />
               </Pressable>
             </View>
@@ -167,7 +180,8 @@ const DriverAssignedExpandedScreen: React.FC<DriverAssignedExpandedScreenProps> 
           {/* Cancel Action */}
           <Pressable
             style={styles.cancelButton}
-            onPress={onCancelBooking}
+            onPress={() => (onCancelBooking ? onCancelBooking() : navigation?.navigate('CancellationReasonScreen'))}
+            accessibilityRole="button"
           >
             <Text style={styles.cancelButtonText}>Cancel Booking</Text>
           </Pressable>

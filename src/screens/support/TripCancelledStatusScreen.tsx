@@ -24,7 +24,7 @@ export interface TripCancelledStatusScreenProps {
   readonly onBack?: () => void;
 }
 
-const TripCancelledStatusScreen: React.FC<TripCancelledStatusScreenProps> = ({
+const TripCancelledStatusScreen: React.FC<TripCancelledStatusScreenProps & { navigation?: any }> = ({
   tripId = 'BK-849201',
   feeTitle = 'No cancellation fee applies',
   feeSubtitle = 'You cancelled within the grace period. No payment was captured.',
@@ -35,12 +35,16 @@ const TripCancelledStatusScreen: React.FC<TripCancelledStatusScreenProps> = ({
   onHome,
   onViewHistory,
   onBack,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Trip Cancelled</Text>
@@ -101,14 +105,16 @@ const TripCancelledStatusScreen: React.FC<TripCancelledStatusScreenProps> = ({
         <View style={styles.actionsContainer}>
           <Button
             label="Back to Home"
-            onPress={() => onHome?.()}
+            onPress={() => (onHome ? onHome() : navigation?.navigate('HomeScreen'))}
             variant="primary"
             fullWidth
             size="lg"
           />
           <Button
             label="View Trip History"
-            onPress={() => onViewHistory?.()}
+            onPress={() =>
+              onViewHistory ? onViewHistory() : navigation?.navigate('TripHistoryScreen')
+            }
             variant="secondary"
             fullWidth
             size="lg"

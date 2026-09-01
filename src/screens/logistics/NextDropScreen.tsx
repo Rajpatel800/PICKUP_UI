@@ -20,22 +20,31 @@ export interface NextDropScreenProps {
   readonly onChat?: () => void;
 }
 
-const NextDropScreen: React.FC<NextDropScreenProps> = ({
+const NextDropScreen: React.FC<NextDropScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   onTrackDriver,
   onCall,
   onChat,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          accessibilityRole="button"
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Trip Progress</Text>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+          accessibilityRole="button"
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -78,16 +87,24 @@ const NextDropScreen: React.FC<NextDropScreenProps> = ({
           <View style={styles.actionsContainer}>
             <Button
               label="Track Driver"
-              onPress={() => onTrackDriver?.()}
+              onPress={() => (onTrackDriver ? onTrackDriver() : navigation?.navigate('CustomerLiveTrackingScreen'))}
               variant="primary"
               fullWidth
             />
             <View style={styles.secondaryActions}>
-              <Pressable style={styles.secondaryBtn} onPress={onCall}>
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => (onCall ? onCall() : navigation?.navigate('CallDriverScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="phone" size={18} color={colors.onSecondaryContainer} />
                 <Text style={styles.secondaryBtnText}>Call</Text>
               </Pressable>
-              <Pressable style={styles.secondaryBtn} onPress={onChat}>
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => (onChat ? onChat() : navigation?.navigate('ActiveTripChatScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="message-circle" size={18} color={colors.onSecondaryContainer} />
                 <Text style={styles.secondaryBtnText}>Chat</Text>
               </Pressable>

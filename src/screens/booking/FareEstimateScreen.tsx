@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { strings } from '../../data/mockData';
+import { useBooking } from '../../state/BookingContext';
+import { getFareEstimate } from '../../api/engine';
+import { toApiError } from '../../api/http';
 import { Feather } from '@expo/vector-icons';
 
 export interface FareEstimateScreenProps {
@@ -25,35 +29,75 @@ interface BreakdownItem {
   readonly isWarning?: boolean;
 }
 
-const breakdownItems: readonly BreakdownItem[] = [
-  { label: 'Base Fare', amount: '₹ 150.00' },
-  { label: 'Distance', sublabel: '12.5 km', amount: '₹ 180.00' },
-  { label: 'Additional Drops', sublabel: '2 locations', amount: '₹ 80.00' },
-  { label: 'Traffic Surcharge', amount: '₹ 25.00', icon: 'alert-triangle', isWarning: true },
-  { label: 'Insurance', amount: '₹ 15.00', icon: 'shield' },
-];
-
-const FareEstimateScreen: React.FC<FareEstimateScreenProps> = ({
+const FareEstimateScreen: React.FC<FareEstimateScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
   onHelp,
+  navigation,
 }) => {
+  const { draft, primaryDrop, setFareEstimate } = useBooking();
+  const estimate = draft.fareEstimate;
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const pickup = draft.pickup;
+  /** The engine defaults to 10kg when weight is omitted; mirror that here. */
+  const weightKg = draft.weightKg ?? 10;
+
+  const loadEstimate = useCallback(async () => {
+    if (!pickup || !primaryDrop) {
+      setError('Pickup and drop are required for a fare estimate.');
+      return;
+    }
+    setIsLoading(true);
+    setError(undefined);
+    try {
+      setFareEstimate(await getFareEstimate(pickup, primaryDrop, weightKg));
+    } catch (caught) {
+      setError(toApiError(caught).userMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pickup, primaryDrop, weightKg, setFareEstimate]);
+
+  // Quote on entry, and re-quote whenever route or weight invalidated it.
+  useEffect(() => {
+    if (!estimate) void loadEstimate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimate, pickup?.latitude, primaryDrop?.latitude, weightKg]);
+
+  const breakdownItems: readonly BreakdownItem[] = estimate
+    ? [
+        { label: 'Base Fare', amount: `₹ ${estimate.breakdown.base}` },
+        {
+          label: 'Distance',
+          sublabel: `${estimate.distanceKm} km at ₹${estimate.perKmCharge}/km`,
+          amount: `₹ ${estimate.breakdown.distance}`,
+        },
+        {
+          label: 'Weight Surcharge',
+          sublabel: `${weightKg} kg · ${estimate.weightMultiplier}× multiplier`,
+          amount: `₹ ${estimate.breakdown.weightSurcharge}`,
+          icon: 'package',
+        },
+      ]
+    : [];
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Top App Bar */}
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
           <Feather name="arrow-left" size={22} color={colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Delivery</Text>
+        <Text style={styles.headerTitle}>Pick Up</Text>
         <Pressable
           style={styles.helpButton}
-          onPress={onHelp}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
           accessibilityRole="button"
           accessibilityLabel="Help"
         >
@@ -76,12 +120,27 @@ const FareEstimateScreen: React.FC<FareEstimateScreenProps> = ({
         {/* Total Card */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>ESTIMATED TOTAL</Text>
-          <View style={styles.totalAmountRow}>
-            <Text style={styles.currencySymbol}>₹</Text>
-            <Text style={styles.totalAmount}>450</Text>
-            <Text style={styles.totalDecimals}>.00</Text>
-          </View>
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.sm }} />
+          ) : (
+            <View style={styles.totalAmountRow}>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <Text style={styles.totalAmount}>{estimate ? estimate.fare : '—'}</Text>
+            </View>
+          )}
+          {estimate && (
+            <Text style={styles.totalMeta}>
+              {estimate.distanceKm} km · about {estimate.durationMin} min
+            </Text>
+          )}
         </View>
+
+        {error && (
+          <Pressable style={styles.errorCard} onPress={loadEstimate} accessibilityRole="button">
+            <Feather name="alert-circle" size={16} color={colors.error} />
+            <Text style={styles.errorCardText}>{error} Tap to retry.</Text>
+          </Pressable>
+        )}
 
         {/* Breakdown Card */}
         <View style={styles.breakdownCard}>
@@ -134,7 +193,10 @@ const FareEstimateScreen: React.FC<FareEstimateScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.continueButton}
-          onPress={onContinue}
+          onPress={() => {
+            onContinue?.();
+            navigation?.navigate('ReviewBookingScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Continue"
         >
@@ -251,6 +313,26 @@ const styles = StyleSheet.create({
     color: colors.onPrimaryFixed,
     lineHeight: 56,
     letterSpacing: -1,
+  },
+  totalMeta: {
+    fontSize: typography.bodyMd.fontSize,
+    color: colors.onSurfaceVariant,
+    fontFamily: typography.bodyMd.fontFamily,
+    marginTop: spacing.xs,
+  },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.errorContainer,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  errorCardText: {
+    flex: 1,
+    fontSize: typography.bodyMd.fontSize,
+    color: colors.error,
+    fontFamily: typography.bodyMd.fontFamily,
   },
   totalDecimals: {
     fontSize: typography.headlineMd.fontSize,

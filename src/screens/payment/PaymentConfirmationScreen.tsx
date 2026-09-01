@@ -22,7 +22,7 @@ export interface PaymentConfirmationScreenProps {
   readonly onMoreOptions?: () => void;
 }
 
-const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
+const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps & { navigation?: any }> = ({
   amount = '₹450',
   paymentMethod = 'UPI (Secure)',
   tripId = '#TRP-8472-X',
@@ -31,16 +31,25 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
   onDone,
   onBack,
   onMoreOptions,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Trip Payment</Text>
-        <Pressable style={styles.iconButton} onPress={onMoreOptions}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() =>
+            onMoreOptions ? onMoreOptions() : navigation?.navigate('DigitalReceiptScreen')
+          }
+        >
           <Feather name="more-vertical" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -103,7 +112,10 @@ const PaymentConfirmationScreen: React.FC<PaymentConfirmationScreenProps> = ({
       <View style={styles.bottomActions}>
         <Button
           label="DONE"
-          onPress={() => onDone?.()}
+          onPress={() => {
+            onDone?.();
+            navigation?.navigate('TripCompletedScreen');
+          }}
           variant="primary"
           fullWidth
           size="lg"

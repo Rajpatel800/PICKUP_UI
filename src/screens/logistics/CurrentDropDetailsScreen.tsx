@@ -18,12 +18,13 @@ export interface CurrentDropDetailsScreenProps {
   readonly onTrackMap?: () => void;
 }
 
-const CurrentDropDetailsScreen: React.FC<CurrentDropDetailsScreenProps> = ({
+const CurrentDropDetailsScreen: React.FC<CurrentDropDetailsScreenProps & { navigation?: any }> = ({
   onBack,
   onMore,
   onCallDriver,
   onChat,
   onTrackMap,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -31,7 +32,7 @@ const CurrentDropDetailsScreen: React.FC<CurrentDropDetailsScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -40,7 +41,7 @@ const CurrentDropDetailsScreen: React.FC<CurrentDropDetailsScreenProps> = ({
         <Text style={styles.headerTitle}>Trip Details</Text>
         <Pressable
           style={styles.iconButton}
-          onPress={onMore}
+          onPress={() => (onMore ? onMore() : navigation?.navigate('ShareTrackingSheetScreen'))}
           accessibilityRole="button"
           accessibilityLabel="More options"
         >
@@ -158,20 +159,43 @@ const CurrentDropDetailsScreen: React.FC<CurrentDropDetailsScreenProps> = ({
 
         {/* Primary Actions */}
         <View style={styles.actionsGrid}>
-          <Pressable style={styles.actionSecondary} onPress={onCallDriver}>
+          <Pressable
+            style={styles.actionSecondary}
+            onPress={() => (onCallDriver ? onCallDriver() : navigation?.navigate('CallDriverScreen'))}
+            accessibilityRole="button"
+          >
             <Feather name="phone" size={20} color={colors.primary} />
             <Text style={styles.actionSecondaryText}>Call Driver</Text>
           </Pressable>
-          <Pressable style={styles.actionSecondary} onPress={onChat}>
+          <Pressable
+            style={styles.actionSecondary}
+            onPress={() => (onChat ? onChat() : navigation?.navigate('ActiveTripChatScreen'))}
+            accessibilityRole="button"
+          >
             <Feather name="message-circle" size={20} color={colors.primary} />
             <Text style={styles.actionSecondaryText}>Chat</Text>
           </Pressable>
-          <Pressable style={styles.actionPrimary} onPress={onTrackMap}>
+          <Pressable
+            style={styles.actionPrimary}
+            onPress={() => (onTrackMap ? onTrackMap() : navigation?.navigate('LiveTrackingScreen'))}
+            accessibilityRole="button"
+          >
             <Feather name="map" size={20} color={colors.onPrimary} />
             <Text style={styles.actionPrimaryText}>Track Map</Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Bottom Action Bar */}
+      <View style={styles.bottomBar}>
+        <Pressable
+          style={styles.verifyOtpButton}
+          onPress={() => navigation?.navigate('DropOtpVerificationScreen')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.verifyOtpText}>VERIFY DROP OTP</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 };
@@ -208,8 +232,37 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.marginMobile,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 140, // clears the fixed bottom action bar
     gap: spacing.xl,
+  },
+
+  // Bottom Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surfaceContainerLowest,
+    paddingHorizontal: spacing.marginMobile,
+    paddingTop: spacing.marginMobile,
+    paddingBottom: spacing.xxl,
+    borderTopWidth: 1,
+    borderTopColor: colors.surfaceVariant,
+    ...shadows.elevated,
+  },
+  verifyOtpButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyOtpText: {
+    fontSize: typography.headlineSm.fontSize,
+    fontWeight: typography.headlineSm.fontWeight,
+    color: colors.onPrimary,
+    fontFamily: typography.headlineSm.fontFamily,
+    textTransform: 'uppercase',
   },
 
   // Highlight Card

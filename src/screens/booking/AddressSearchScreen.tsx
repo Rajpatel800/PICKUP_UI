@@ -6,10 +6,15 @@ import {
   Pressable,
   TextInput,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { usePlaceSearch } from '../../hooks/usePlaceSearch';
+import { useBooking } from '../../state/BookingContext';
+import { getCurrentPlace, LocationPermissionDeniedError, type PlaceSuggestion } from '../../api/geocoding';
+import { toApiError } from '../../api/http';
 
 export interface AddressSearchScreenProps {
   readonly onBack?: () => void;
@@ -19,31 +24,69 @@ export interface AddressSearchScreenProps {
   readonly onCurrentLocation?: () => void;
 }
 
-const RECENT_LOCATIONS = [
-  { id: '1', name: '123 Main Street', address: 'San Francisco, CA 94105', icon: 'clock' as const },
-  { id: '2', name: 'San Francisco International Airport (SFO)', address: 'Terminal 2, San Francisco, CA 94128', icon: 'clock' as const },
-  { id: '3', name: 'Home', address: '456 Oak Ave, San Francisco, CA 94117', icon: 'home' as const, color: colors.primary },
-  { id: '4', name: 'Work', address: '789 Market St, San Francisco, CA 94103', icon: 'briefcase' as const, color: colors.primary },
-];
-
-const AddressSearchScreen: React.FC<AddressSearchScreenProps> = ({
+const AddressSearchScreen: React.FC<AddressSearchScreenProps & { navigation?: any }> = ({
   onBack,
   onClose,
   onLocationSelect,
   onMapSelect,
   onCurrentLocation,
+  navigation,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const { draft, setPendingDrop } = useBooking();
+  // Bias results toward the pickup point so short queries resolve locally.
+  const { query, setQuery, suggestions, isSearching, error, resolve, clear } = usePlaceSearch(
+    draft.pickup
+  );
+  const [isResolving, setIsResolving] = useState(false);
+  const [actionError, setActionError] = useState<string>();
+
+  /** Resolves a suggestion to coordinates, then moves to the map confirm step. */
+  const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
+    setIsResolving(true);
+    setActionError(undefined);
+    try {
+      const place = await resolve(suggestion);
+      setPendingDrop(place);
+      onLocationSelect?.(place.address);
+      navigation?.navigate('SelectDropLocationScreen');
+    } catch (caught) {
+      setActionError(toApiError(caught).userMessage);
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  /** Uses the device GPS position as the drop. */
+  const handleCurrentLocation = async () => {
+    setIsResolving(true);
+    setActionError(undefined);
+    try {
+      const place = await getCurrentPlace();
+      setPendingDrop(place);
+      onCurrentLocation?.();
+      navigation?.navigate('SelectDropLocationScreen');
+    } catch (caught) {
+      setActionError(
+        caught instanceof LocationPermissionDeniedError
+          ? 'Location permission is off. Enable it in Settings to use your current location.'
+          : toApiError(caught).userMessage
+      );
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const hasQuery = query.trim().length > 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Pick Up</Text>
-        <Pressable style={styles.iconButton} onPress={onClose}>
+        <Pressable style={styles.iconButton} onPress={() => (onClose ? onClose() : navigation?.navigate('HomeScreen'))}>
           <Feather name="x" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -57,55 +100,98 @@ const AddressSearchScreen: React.FC<AddressSearchScreenProps> = ({
               style={styles.searchInput}
               placeholder="Search location"
               placeholderTextColor={colors.onSurfaceVariant}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              value={query}
+              onChangeText={setQuery}
               autoFocus
+              autoCorrect={false}
+              returnKeyType="search"
             />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            {isSearching && <ActivityIndicator size="small" color={colors.onSurfaceVariant} />}
+            {hasQuery && !isSearching && (
+              <Pressable onPress={clear} style={styles.clearButton} accessibilityLabel="Clear search">
                 <MaterialIcons name="cancel" size={20} color={colors.onSurfaceVariant} />
               </Pressable>
             )}
           </View>
         </View>
 
-        {/* Quick Actions Group */}
-        <View style={styles.quickActionsContainer}>
-          <Pressable style={styles.quickActionBtn} onPress={onCurrentLocation}>
-            <MaterialIcons name="my-location" size={18} color={colors.onSecondaryContainer} />
-            <Text style={styles.quickActionText}>Current Location</Text>
-          </Pressable>
-          
-          <Pressable style={styles.quickActionBtn} onPress={onMapSelect}>
-            <MaterialIcons name="map" size={18} color={colors.onSecondaryContainer} />
-            <Text style={styles.quickActionText}>Select on Map</Text>
-          </Pressable>
-        </View>
+          {/* Current Location & Map Actions */}
+          <View style={styles.quickActionsContainer}>
+            <Pressable
+              style={styles.quickActionBtn}
+              onPress={handleCurrentLocation}
+              disabled={isResolving}
+            >
+              <Feather name="navigation" size={20} color={colors.primary} />
+              <Text style={styles.quickActionText}>Current Location</Text>
+            </Pressable>
+            
+            <View style={{ width: 1, backgroundColor: colors.outlineVariant, marginHorizontal: spacing.sm }} />
+            
+            <Pressable
+              style={styles.quickActionBtn}
+              onPress={() => {
+                onMapSelect?.();
+                navigation?.navigate('SelectDropLocationScreen');
+              }}
+            >
+              <Feather name="map" size={20} color={colors.primary} />
+              <Text style={styles.quickActionText}>Locate on Map</Text>
+            </Pressable>
+          </View>
 
-        {/* Suggestions / Recent Locations List */}
+        {/* Live results from Google Places */}
         <View style={styles.listContainer}>
-          <Text style={styles.listTitle}>RECENT LOCATIONS</Text>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {RECENT_LOCATIONS.map((loc) => (
+          <Text style={styles.listTitle}>
+            {hasQuery ? 'SEARCH RESULTS' : 'SEARCH FOR A DROP LOCATION'}
+          </Text>
+
+          {(actionError || error) && (
+            <View style={styles.messageRow}>
+              <Feather name="alert-circle" size={16} color={colors.error} />
+              <Text style={styles.errorMessage}>{actionError ?? error?.userMessage}</Text>
+            </View>
+          )}
+
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            {!hasQuery && !actionError && (
+              <Text style={styles.hintText}>
+                Start typing an address, or use your current location.
+              </Text>
+            )}
+
+            {hasQuery && !isSearching && !suggestions.length && !error && (
+              <Text style={styles.hintText}>No places matched that search.</Text>
+            )}
+
+            {suggestions.map((suggestion) => (
               <Pressable
-                key={loc.id}
+                key={suggestion.placeId}
                 style={styles.locationItem}
-                onPress={() => onLocationSelect?.(loc.name)}
+                onPress={() => handleSelectSuggestion(suggestion)}
+                disabled={isResolving}
+                accessibilityRole="button"
+                accessibilityLabel={suggestion.description}
               >
                 <View style={styles.iconContainer}>
-                  <Feather
-                    name={loc.icon}
-                    size={20}
-                    color={loc.color || colors.onSurfaceVariant}
-                  />
+                  <Feather name="map-pin" size={20} color={colors.onSurfaceVariant} />
                 </View>
                 <View style={styles.locationTextContainer}>
-                  <Text style={styles.locationName}>{loc.name}</Text>
-                  <Text style={styles.locationAddress}>{loc.address}</Text>
+                  <Text style={styles.locationName}>{suggestion.primaryText}</Text>
+                  {suggestion.secondaryText.length > 0 && (
+                    <Text style={styles.locationAddress}>{suggestion.secondaryText}</Text>
+                  )}
                 </View>
               </Pressable>
             ))}
           </ScrollView>
+
+          {isResolving && (
+            <View style={styles.messageRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.hintText}>Getting location details…</Text>
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -116,6 +202,24 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  errorMessage: {
+    flex: 1,
+    fontSize: typography.bodyMd.fontSize,
+    color: colors.error,
+    fontFamily: typography.bodyMd.fontFamily,
+  },
+  hintText: {
+    fontSize: typography.bodyMd.fontSize,
+    color: colors.onSurfaceVariant,
+    fontFamily: typography.bodyMd.fontFamily,
+    paddingVertical: spacing.sm,
   },
   header: {
     flexDirection: 'row',

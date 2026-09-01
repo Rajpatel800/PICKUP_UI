@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
+import { reverseGeocode } from '../../api/geocoding';
+import type { GeoPoint } from '../../api/types';
+import MapCanvas from '../../components/map/MapCanvas';
 import Button from '../../components/atoms/Button';
 
 export interface SelectLocationScreenProps {
@@ -17,23 +21,54 @@ export interface SelectLocationScreenProps {
   readonly onConfirm?: () => void;
 }
 
-const SelectLocationScreen: React.FC<SelectLocationScreenProps> = ({
+const SelectLocationScreen: React.FC<SelectLocationScreenProps & { navigation?: any }> = ({
   type = 'pickup',
   locationAddress = '14th St & Broadway',
   onBack,
   onConfirm,
+  navigation,
 }) => {
   const isPickup = type === 'pickup';
-  
+  const { draft, setPickup } = useBooking();
+
+  // Coordinate under the centre pin, and its resolved address.
+  const [picked, setPicked] = useState<GeoPoint | undefined>(draft.pickup);
+  const [address, setAddress] = useState(draft.pickup?.address ?? locationAddress);
+  const [isResolving, setIsResolving] = useState(false);
+
+  /** Reverse geocodes wherever the user stopped panning. */
+  const handleRegionChange = useCallback((point: GeoPoint) => {
+    setPicked(point);
+    setIsResolving(true);
+    reverseGeocode(point)
+      .then((resolved) => setAddress(resolved || 'Dropped pin'))
+      .catch(() => setAddress('Dropped pin'))
+      .finally(() => setIsResolving(false));
+  }, []);
+
+  const handleConfirm = () => {
+    if (picked) {
+      setPickup({ ...picked, address });
+    }
+    onConfirm?.();
+    // This screen only sets or changes the pickup, so it returns to the caller.
+    navigation?.goBack();
+  };
+
   return (
     <View style={styles.container}>
-      {/* Map Background Mock */}
-      <View style={styles.mapBackground} />
+      {/* Real map. Panning moves the pin, matching the centre-marker pattern. */}
+      <MapCanvas
+        style={styles.mapBackground}
+        center={draft.pickup}
+        showsUserLocation
+        onRegionChangeComplete={handleRegionChange}
+      />
 
       {/* Top Floating Header */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.floatingHeader}>
-          <Pressable style={styles.circleButton} onPress={onBack}>
+          <Pressable style={styles.circleButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
             <Feather name="arrow-left" size={24} color={colors.onSurface} />
           </Pressable>
         </View>
@@ -63,15 +98,16 @@ const SelectLocationScreen: React.FC<SelectLocationScreenProps> = ({
         <View style={styles.addressContainer}>
           <Feather name="map-pin" size={20} color={colors.primary} />
           <Text style={styles.addressText} numberOfLines={2}>
-            {locationAddress}
+            {isResolving ? 'Locating…' : address}
           </Text>
         </View>
 
         <Button
           label={isPickup ? 'Confirm Pick Up' : 'Confirm Drop Off'}
-          onPress={() => onConfirm?.()}
+          onPress={handleConfirm}
           variant="primary"
           fullWidth
+          disabled={isResolving}
         />
       </View>
     </View>

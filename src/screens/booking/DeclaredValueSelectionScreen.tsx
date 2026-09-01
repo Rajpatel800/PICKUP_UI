@@ -25,10 +25,11 @@ const DECLARED_VALUE_OPTIONS = [
   { id: '4', label: 'Above ₹50,000', requiresCustom: true },
 ];
 
-const DeclaredValueSelectionScreen: React.FC<DeclaredValueSelectionScreenProps> = ({
+const DeclaredValueSelectionScreen: React.FC<DeclaredValueSelectionScreenProps & { navigation?: any }> = ({
   onBack,
   onClose,
   onNext,
+  navigation,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [customValue, setCustomValue] = useState('');
@@ -48,11 +49,11 @@ const DeclaredValueSelectionScreen: React.FC<DeclaredValueSelectionScreenProps> 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Pick Up</Text>
-        <Pressable style={styles.iconButton} onPress={onClose}>
+        <Pressable style={styles.iconButton} onPress={() => (onClose ? onClose() : navigation?.goBack())}>
           <Feather name="x" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -117,10 +118,13 @@ const DeclaredValueSelectionScreen: React.FC<DeclaredValueSelectionScreenProps> 
 
       <View style={styles.footer}>
         <Button
-          title="Next"
-          onPress={handleNext}
+          label="Next"
+          onPress={() => {
+            handleNext();
+            navigation?.goBack();
+          }}
           variant="primary"
-          trailingIcon={<Feather name="arrow-right" size={20} color={colors.onPrimary} />}
+          icon={<Feather name="arrow-right" size={20} color={colors.onPrimary} />}
           disabled={isNextDisabled}
         />
       </View>

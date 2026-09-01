@@ -17,9 +17,10 @@ export interface SearchingDriverScreenProps {
   readonly onMenu?: () => void;
 }
 
-const SearchingDriverScreen: React.FC<SearchingDriverScreenProps> = ({
+const SearchingDriverScreen: React.FC<SearchingDriverScreenProps & { navigation?: any }> = ({
   onCancel,
   onMenu,
+  navigation,
 }) => {
   const pulse1 = useRef(new Animated.Value(0)).current;
   const pulse2 = useRef(new Animated.Value(0)).current;
@@ -84,7 +85,11 @@ const SearchingDriverScreen: React.FC<SearchingDriverScreenProps> = ({
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Pressable style={styles.iconButton} onPress={onMenu}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => (onMenu ? onMenu() : navigation?.goBack())}
+              accessibilityRole="button"
+            >
               <Feather name="menu" size={24} color={colors.primary} />
             </Pressable>
             <Text style={styles.headerTitle}>Pick Up</Text>
@@ -180,7 +185,7 @@ const SearchingDriverScreen: React.FC<SearchingDriverScreenProps> = ({
 
             <Button
               label="Cancel"
-              onPress={() => onCancel?.()}
+              onPress={() => (onCancel ? onCancel() : navigation?.navigate('CancellationReasonScreen'))}
               variant="outline"
               fullWidth
             />

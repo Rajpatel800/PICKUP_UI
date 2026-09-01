@@ -13,5 +13,8 @@
     "skipLibCheck": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  // `engine/` is a local checkout of the separate NestJS backend repo. It has
+  // its own tsconfig (decorators, Jest globals) and must not be type-checked
+  // as part of the app.
+  "exclude": ["node_modules", "engine", ".verify-dist", "dist"]
 }

@@ -27,7 +27,7 @@ export interface DigitalReceiptScreenProps {
   readonly onBack?: () => void;
 }
 
-const DigitalReceiptScreen: React.FC<DigitalReceiptScreenProps> = ({
+const DigitalReceiptScreen: React.FC<DigitalReceiptScreenProps & { navigation?: any }> = ({
   tripId = '#TRP-8472-X',
   date = 'Oct 24, 2023 • 11:30 AM',
   vehicle = 'Tata Ace (RJ 19 XX 1234)',
@@ -41,16 +41,23 @@ const DigitalReceiptScreen: React.FC<DigitalReceiptScreenProps> = ({
   onHome,
   onHelp,
   onBack,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Precision Mobility</Text>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -181,7 +188,11 @@ const DigitalReceiptScreen: React.FC<DigitalReceiptScreenProps> = ({
         <View style={styles.actionsContainer}>
           <Button
             label="SHARE RECEIPT"
-            onPress={() => onShareReceipt?.()}
+            onPress={() =>
+              onShareReceipt
+                ? onShareReceipt()
+                : navigation?.navigate('ShareTrackingSheetScreen')
+            }
             variant="primary"
             fullWidth
             size="lg"
@@ -189,7 +200,7 @@ const DigitalReceiptScreen: React.FC<DigitalReceiptScreenProps> = ({
           />
           <Button
             label="BACK TO HOME"
-            onPress={() => onHome?.()}
+            onPress={() => (onHome ? onHome() : navigation?.navigate('HomeScreen'))}
             variant="secondary"
             fullWidth
             size="lg"

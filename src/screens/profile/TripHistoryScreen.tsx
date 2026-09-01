@@ -13,16 +13,18 @@ import { mockTripHistory, TripHistoryItem } from '../../data/mockData';
 
 export interface TripHistoryScreenProps {
   readonly onBack?: () => void;
-  readonly onFilter?: () => void;
   readonly onTripSelect?: (trip: TripHistoryItem) => void;
 }
 
-const TripHistoryScreen: React.FC<TripHistoryScreenProps> = ({
+const TripHistoryScreen: React.FC<TripHistoryScreenProps & { navigation?: any }> = ({
   onBack,
-  onFilter,
   onTripSelect,
+  navigation,
 }) => {
   const [activeTab, setActiveTab] = useState<'Recent' | 'Scheduled'>('Recent');
+
+  // No scheduled mock data exists in this prototype, so that tab renders an empty list.
+  const visibleTrips: readonly TripHistoryItem[] = activeTab === 'Recent' ? mockTripHistory : [];
 
   const renderTripCard = (trip: TripHistoryItem) => {
     const isCompleted = trip.status === 'completed';
@@ -32,7 +34,12 @@ const TripHistoryScreen: React.FC<TripHistoryScreenProps> = ({
       <Pressable
         key={trip.id}
         style={styles.tripCard}
-        onPress={() => onTripSelect?.(trip)}
+        onPress={() => {
+          onTripSelect?.(trip);
+          navigation?.navigate(
+            trip.status === 'cancelled' ? 'TripCancelledStatusScreen' : 'HistoricalTripDetailScreen'
+          );
+        }}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
@@ -85,8 +92,8 @@ const TripHistoryScreen: React.FC<TripHistoryScreenProps> = ({
             <View style={[styles.timelineDot, isCompleted ? styles.timelineDotActiveDrop : styles.timelineDotInactive]} />
           </View>
           <View style={styles.routeLocations}>
-            <Text style={styles.locationText}>{trip.pickup}</Text>
-            <Text style={styles.locationText}>{trip.dropoff}</Text>
+            <Text style={styles.locationText}>{trip.from}</Text>
+            <Text style={styles.locationText}>{trip.to}</Text>
           </View>
         </View>
 
@@ -107,19 +114,16 @@ const TripHistoryScreen: React.FC<TripHistoryScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
         >
-          <Feather name="menu" size={22} color={colors.primary} />
+          <Feather name="arrow-left" size={22} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Trip History</Text>
-        <Pressable
-          style={styles.iconButton}
-          onPress={onFilter}
-          accessibilityRole="button"
-        >
+        {/* Decorative: there is no filter surface in this prototype */}
+        <View style={styles.iconButton}>
           <Feather name="filter" size={22} color={colors.primary} />
-        </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -149,7 +153,7 @@ const TripHistoryScreen: React.FC<TripHistoryScreenProps> = ({
 
         {/* Trip List */}
         <View style={styles.tripList}>
-          {mockTripHistory.map(renderTripCard)}
+          {visibleTrips.map(renderTripCard)}
         </View>
       </ScrollView>
     </SafeAreaView>

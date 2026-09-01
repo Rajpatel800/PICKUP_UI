@@ -10,15 +10,17 @@ import { colors, spacing, borderRadius, typography, shadows } from '../../theme'
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import BottomNavBar from '../../components/BottomNavBar';
 import LocationInputRow from '../../components/molecules/LocationInputRow';
+import { navigateToTab } from '../../navigation/tabRoutes';
 
 export interface SearchUnavailableScreenProps {
   readonly onRetry?: () => void;
   readonly onManualEntry?: () => void;
 }
 
-const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps> = ({
+const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps & { navigation?: any }> = ({
   onRetry,
   onManualEntry,
+  navigation,
 }) => {
   return (
     <View style={styles.container}>
@@ -31,7 +33,10 @@ const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps> = ({
             </View>
           </View>
           <Text style={styles.headerTitle}>LogisticsPro</Text>
-          <Pressable style={styles.iconButton}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => navigation?.navigate('NotificationCenterScreen')}
+          >
             <Feather name="bell" size={20} color={colors.onSurfaceVariant} />
           </Pressable>
         </View>
@@ -59,7 +64,7 @@ const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps> = ({
 
         {/* Error Overlay Modal */}
         <View style={styles.errorOverlay}>
-          <Pressable style={styles.scrimClickArea} onPress={() => {}} />
+          <Pressable style={styles.scrimClickArea} onPress={() => navigation?.goBack()} />
           
           <SafeAreaView edges={['bottom']} style={styles.bottomSheetWrapper}>
             <View style={styles.bottomSheet}>
@@ -75,12 +80,20 @@ const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps> = ({
                 </Text>
 
                 <View style={styles.actionsContainer}>
-                  <Pressable style={styles.primaryButton} onPress={onRetry}>
+                  <Pressable
+                    style={styles.primaryButton}
+                    onPress={() => (onRetry ? onRetry() : navigation?.goBack())}
+                  >
                     <Feather name="refresh-cw" size={18} color={colors.onPrimary} />
                     <Text style={styles.primaryButtonText}>Retry Connection</Text>
                   </Pressable>
                   
-                  <Pressable style={styles.secondaryButton} onPress={onManualEntry}>
+                  <Pressable
+                    style={styles.secondaryButton}
+                    onPress={() =>
+                      onManualEntry ? onManualEntry() : navigation?.navigate('AddressSearchScreen')
+                    }
+                  >
                     <Text style={styles.secondaryButtonText}>Enter address manually</Text>
                   </Pressable>
                 </View>
@@ -93,7 +106,10 @@ const SearchUnavailableScreen: React.FC<SearchUnavailableScreenProps> = ({
         </View>
       </View>
 
-      <BottomNavBar currentTab="home" />
+      <BottomNavBar
+        currentTab="home"
+        onTabPress={(tabId) => navigateToTab(navigation, tabId)}
+      />
     </View>
   );
 };

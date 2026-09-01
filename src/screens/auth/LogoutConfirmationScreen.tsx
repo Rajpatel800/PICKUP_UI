@@ -10,23 +10,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import BottomNavBar from '../../components/BottomNavBar';
 
 const { height: screenHeight } = Dimensions.get('window');
 
 export interface LogoutConfirmationScreenProps {
   readonly onLogoutConfirm?: () => void;
   readonly onCancel?: () => void;
-  // dummy props for background
-  readonly currentTab?: string;
-  readonly onTabPress?: (tabId: string) => void;
 }
 
-const LogoutConfirmationScreen: React.FC<LogoutConfirmationScreenProps> = ({
+const LogoutConfirmationScreen: React.FC<LogoutConfirmationScreenProps & { navigation?: any }> = ({
   onLogoutConfirm,
   onCancel,
-  currentTab = 'profile',
-  onTabPress = () => {},
+  navigation,
 }) => {
   return (
     <View style={styles.container}>
@@ -66,7 +61,10 @@ const LogoutConfirmationScreen: React.FC<LogoutConfirmationScreenProps> = ({
 
       {/* Scrim Overlay */}
       <View style={styles.scrimOverlay}>
-        <Pressable style={styles.scrimPressable} onPress={onCancel} />
+        <Pressable
+          style={styles.scrimPressable}
+          onPress={() => (onCancel ? onCancel() : navigation?.goBack())}
+        />
         
         {/* Bottom Sheet */}
         <SafeAreaView edges={['bottom']} style={styles.bottomSheetWrapper}>
@@ -90,11 +88,20 @@ const LogoutConfirmationScreen: React.FC<LogoutConfirmationScreenProps> = ({
 
               {/* Actions */}
               <View style={styles.actionsContainer}>
-                <Pressable style={styles.logoutButton} onPress={onLogoutConfirm}>
+                <Pressable
+                  style={styles.logoutButton}
+                  onPress={() => {
+                    onLogoutConfirm?.();
+                    navigation?.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
+                  }}
+                >
                   <Text style={styles.logoutButtonText}>Log Out</Text>
                 </Pressable>
                 
-                <Pressable style={styles.cancelButton} onPress={onCancel}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={() => (onCancel ? onCancel() : navigation?.goBack())}
+                >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </Pressable>
               </View>

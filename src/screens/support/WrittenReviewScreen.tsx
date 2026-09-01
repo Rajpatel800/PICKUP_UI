@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
 import BottomNavBar from '../../components/BottomNavBar';
+import { navigateToTab } from '../../navigation/tabRoutes';
 
 export interface WrittenReviewScreenProps {
   readonly onBack?: () => void;
@@ -34,14 +35,15 @@ const SUGGESTED_TOPICS = [
 
 const MAX_CHARS = 500;
 
-const WrittenReviewScreen: React.FC<WrittenReviewScreenProps> = ({
+const WrittenReviewScreen: React.FC<WrittenReviewScreenProps & { navigation?: any }> = ({
   onBack,
   onSkip,
   onSubmit,
   onAddPhoto,
   onAddLocation,
   currentTab = 'profile', // Feedback/Review is somewhat related to profile/history
-  onTabPress = () => {},
+  onTabPress,
+  navigation,
 }) => {
   const [reviewText, setReviewText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -64,11 +66,19 @@ const WrittenReviewScreen: React.FC<WrittenReviewScreenProps> = ({
       >
         {/* Top App Bar */}
         <View style={styles.header}>
-          <Pressable style={styles.iconButton} onPress={onBack}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          >
             <Feather name="arrow-left" size={24} color={colors.onSurfaceVariant} />
           </Pressable>
           <Text style={styles.headerTitle}>Write a Review</Text>
-          <Pressable style={styles.skipHeaderButton} onPress={onSkip}>
+          <Pressable
+            style={styles.skipHeaderButton}
+            onPress={() =>
+              onSkip ? onSkip() : navigation?.navigate('TripCompletedSummaryScreen')
+            }
+          >
             <Text style={styles.skipHeaderText}>Skip</Text>
           </Pressable>
         </View>
@@ -100,12 +110,24 @@ const WrittenReviewScreen: React.FC<WrittenReviewScreenProps> = ({
             {/* Footer of Text Area */}
             <View style={styles.inputFooter}>
               <View style={styles.actionButtons}>
-                <Pressable style={styles.actionIconButton} onPress={onAddPhoto}>
-                  <Feather name="camera" size={20} color={colors.onSurfaceVariant} />
-                </Pressable>
-                <Pressable style={styles.actionIconButton} onPress={onAddLocation}>
-                  <Feather name="map-pin" size={20} color={colors.onSurfaceVariant} />
-                </Pressable>
+                {onAddPhoto ? (
+                  <Pressable style={styles.actionIconButton} onPress={() => onAddPhoto()}>
+                    <Feather name="camera" size={20} color={colors.onSurfaceVariant} />
+                  </Pressable>
+                ) : (
+                  <View style={styles.actionIconButton}>
+                    <Feather name="camera" size={20} color={colors.onSurfaceVariant} />
+                  </View>
+                )}
+                {onAddLocation ? (
+                  <Pressable style={styles.actionIconButton} onPress={() => onAddLocation()}>
+                    <Feather name="map-pin" size={20} color={colors.onSurfaceVariant} />
+                  </Pressable>
+                ) : (
+                  <View style={styles.actionIconButton}>
+                    <Feather name="map-pin" size={20} color={colors.onSurfaceVariant} />
+                  </View>
+                )}
               </View>
               <Text style={[styles.charCount, charCount >= 450 && styles.charCountWarning]}>
                 {charCount} / {MAX_CHARS}
@@ -135,7 +157,10 @@ const WrittenReviewScreen: React.FC<WrittenReviewScreenProps> = ({
           {/* Submit Button */}
           <Pressable
             style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
-            onPress={() => onSubmit?.(reviewText)}
+            onPress={() => {
+              onSubmit?.(reviewText);
+              navigation?.navigate('HomeScreen');
+            }}
             disabled={isSubmitDisabled}
           >
             <Text style={styles.submitButtonText}>SUBMIT REVIEW</Text>
@@ -144,7 +169,10 @@ const WrittenReviewScreen: React.FC<WrittenReviewScreenProps> = ({
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <BottomNavBar currentTab={currentTab} onTabPress={onTabPress} />
+      <BottomNavBar
+        currentTab={currentTab}
+        onTabPress={(tabId) => (onTabPress ? onTabPress(tabId) : navigateToTab(navigation, tabId))}
+      />
     </SafeAreaView>
   );
 };

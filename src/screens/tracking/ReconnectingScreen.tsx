@@ -14,8 +14,9 @@ export interface ReconnectingScreenProps {
   readonly lastSignalTime?: string;
 }
 
-const ReconnectingScreen: React.FC<ReconnectingScreenProps> = ({
+const ReconnectingScreen: React.FC<ReconnectingScreenProps & { navigation?: any }> = ({
   lastSignalTime = '14:02', // mock default
+  navigation,
 }) => {
   // Animations
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -84,6 +85,14 @@ const ReconnectingScreen: React.FC<ReconnectingScreenProps> = ({
     inputRange: [0, 1],
     outputRange: ['0%', '400%'] // 400% of 20% width = moves to end
   });
+
+  // Auto-navigate to NetworkErrorScreen after 3.0s for prototype
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('NetworkErrorScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>

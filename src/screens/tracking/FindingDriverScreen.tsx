@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,98 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
+import { findDriverAndCreateRide, NoDriversAvailableError } from '../../api/matching';
+import { getRideTrip } from '../../api/engine';
+import { toApiError } from '../../api/http';
 
 export interface FindingDriverScreenProps {
   readonly onCancel?: () => void;
   readonly onBack?: () => void;
 }
 
-const FindingDriverScreen: React.FC<FindingDriverScreenProps> = ({
+const FindingDriverScreen: React.FC<FindingDriverScreenProps & { navigation?: any }> = ({
   onCancel,
   onBack,
+  navigation,
 }) => {
   const [pulseAnim] = useState(new Animated.Value(0));
   const [progressAnim] = useState(new Animated.Value(0));
+
+  const { draft, primaryDrop, customerId, setRide, setTrip, setAssignedDriver } = useBooking();
+  const [statusText, setStatusText] = useState('Searching for nearby drivers…');
+  const [failure, setFailure] = useState<string>();
+  const abortRef = useRef<AbortController | undefined>(undefined);
+
+  /**
+   * Runs the client-side dispatch: nearby drivers, then offer the ride to each
+   * in turn until one accepts. The engine has no server-side matching.
+   */
+  useEffect(() => {
+    const pickup = draft.pickup;
+    if (!pickup || !primaryDrop || !customerId) {
+      setFailure('Pickup and drop are required before booking.');
+      return;
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { ride, driver } = await findDriverAndCreateRide(
+          {
+            customerId,
+            pickup,
+            drop: primaryDrop,
+            vehicleType: draft.vehicleType,
+            weight: draft.weightKg,
+            fare: draft.fareEstimate?.fare,
+          },
+          {
+            signal: controller.signal,
+            onProgress: ({ attempt, totalCandidates, driver: candidate }) => {
+              if (cancelled) return;
+              setStatusText(
+                `Contacting ${candidate.name} · ${candidate.distanceKm.toFixed(1)} km away (${attempt} of ${totalCandidates})`
+              );
+            },
+          }
+        );
+
+        if (cancelled) return;
+        setRide(ride);
+        setAssignedDriver(driver);
+
+        // The trip is created the moment the driver accepts.
+        const trip = await getRideTrip(ride.id, controller.signal);
+        if (cancelled) return;
+        if (trip) setTrip(trip);
+
+        navigation?.navigate('DriverFoundScreen');
+      } catch (caught) {
+        if (cancelled || controller.signal.aborted) return;
+        if (caught instanceof NoDriversAvailableError) {
+          navigation?.navigate('NoDriversAvailableScreen');
+          return;
+        }
+        setFailure(toApiError(caught).userMessage);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
+  const handleCancel = () => {
+    abortRef.current?.abort();
+    if (onCancel) return onCancel();
+    navigation?.navigate('CancellationReasonScreen');
+  };
 
   useEffect(() => {
     // Pulse animation for the map pin
@@ -93,7 +173,7 @@ const FindingDriverScreen: React.FC<FindingDriverScreenProps> = ({
         <View style={styles.header}>
           <Pressable
             style={styles.iconButton}
-            onPress={onBack}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
             accessibilityRole="button"
           >
             <Feather name="arrow-left" size={22} color={colors.primary} />
@@ -116,7 +196,7 @@ const FindingDriverScreen: React.FC<FindingDriverScreenProps> = ({
                   <Text style={styles.statusBadgeText}>Booking Confirmed</Text>
                 </View>
               </View>
-              <Text style={styles.statusTitle}>Searching for nearby drivers...</Text>
+              <Text style={styles.statusTitle}>{failure ?? statusText}</Text>
               
               {/* Progress Bar */}
               <View style={styles.progressBarTrack}>
@@ -158,11 +238,7 @@ const FindingDriverScreen: React.FC<FindingDriverScreenProps> = ({
           </View>
 
           {/* Cancel Action */}
-          <Pressable
-            style={styles.cancelButton}
-            onPress={onCancel}
-            accessibilityRole="button"
-          >
+          <Pressable style={styles.cancelButton} onPress={handleCancel} accessibilityRole="button">
             <Text style={styles.cancelButtonText}>CANCEL BOOKING</Text>
           </Pressable>
         </View>

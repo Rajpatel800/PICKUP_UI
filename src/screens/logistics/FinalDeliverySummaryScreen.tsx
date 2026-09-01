@@ -15,9 +15,10 @@ export interface FinalDeliverySummaryScreenProps {
   readonly onConfirmPayment?: () => void;
 }
 
-const FinalDeliverySummaryScreen: React.FC<FinalDeliverySummaryScreenProps> = ({
+const FinalDeliverySummaryScreen: React.FC<FinalDeliverySummaryScreenProps & { navigation?: any }> = ({
   onBack,
   onConfirmPayment,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -25,7 +26,7 @@ const FinalDeliverySummaryScreen: React.FC<FinalDeliverySummaryScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -126,7 +127,10 @@ const FinalDeliverySummaryScreen: React.FC<FinalDeliverySummaryScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.confirmButton}
-          onPress={onConfirmPayment}
+          onPress={() => {
+            onConfirmPayment?.();
+            navigation?.navigate('PaymentSelectionScreen');
+          }}
           accessibilityRole="button"
         >
           <Text style={styles.confirmText}>CONFIRM PAYMENT & CLOSE TRIP</Text>

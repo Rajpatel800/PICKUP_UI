@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
 
 export interface GoodsDetailsScreenProps {
   readonly onBack?: () => void;
@@ -18,10 +19,12 @@ export interface GoodsDetailsScreenProps {
 
 const goodsTypes = ['Furniture', 'Electronics', 'Clothing/Apparel', 'Documents', 'Other'];
 
-const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps> = ({
+const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
+  navigation,
 }) => {
+  const { setGoods } = useBooking();
   const [selectedType, setSelectedType] = useState<string>('');
   const [description, setDescription] = useState('');
   const [weight, setWeight] = useState('');
@@ -29,13 +32,19 @@ const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps> = ({
   const [declaredValue, setDeclaredValue] = useState('');
   const [instructions, setInstructions] = useState('');
 
+  // Local-only selector: cycles through the available goods types on each tap.
+  const handleCycleGoodsType = () => {
+    const nextIndex = (goodsTypes.indexOf(selectedType) + 1) % goodsTypes.length;
+    setSelectedType(goodsTypes[nextIndex]);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Top App Bar */}
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -44,6 +53,7 @@ const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps> = ({
         <Text style={styles.headerTitle}>Goods Details</Text>
         <Pressable
           style={styles.iconButton}
+          onPress={() => navigation?.navigate('ActiveTripChatScreen')}
           accessibilityRole="button"
           accessibilityLabel="More options"
         >
@@ -62,7 +72,12 @@ const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps> = ({
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Goods/Load Type</Text>
           <View style={styles.selectContainer}>
-            <Pressable style={styles.selectButton}>
+            <Pressable
+              style={styles.selectButton}
+              onPress={handleCycleGoodsType}
+              accessibilityRole="button"
+              accessibilityLabel="Select goods type"
+            >
               <Text style={[styles.selectText, !selectedType && styles.selectPlaceholder]}>
                 {selectedType || 'Select goods type...'}
               </Text>
@@ -159,7 +174,24 @@ const GoodsDetailsScreen: React.FC<GoodsDetailsScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.continueButton}
-          onPress={onContinue}
+          onPress={() => {
+            // Weight drives the engine's fare multiplier, so persist it.
+            // The engine expects kilograms.
+            const parsed = Number.parseFloat(weight);
+            const weightKg = Number.isFinite(parsed)
+              ? weightUnit === 'lbs'
+                ? parsed * 0.453_592
+                : parsed
+              : undefined;
+
+            setGoods({
+              weightKg,
+              goodsDescription: description || selectedType || undefined,
+              declaredValue: declaredValue || undefined,
+            });
+            onContinue?.();
+            navigation?.navigate('GoodsInsuranceScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Continue"
         >

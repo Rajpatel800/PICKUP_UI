@@ -27,10 +27,11 @@ const CANCELLATION_REASONS = [
   { id: 'other', label: 'Other' },
 ];
 
-const CancellationReasonScreen: React.FC<CancellationReasonScreenProps> = ({
+const CancellationReasonScreen: React.FC<CancellationReasonScreenProps & { navigation?: any }> = ({
   onSubmit,
   onBack,
   onHelp,
+  navigation,
 }) => {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherText, setOtherText] = useState('');
@@ -45,11 +46,17 @@ const CancellationReasonScreen: React.FC<CancellationReasonScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>Reason for Cancellation</Text>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -114,7 +121,10 @@ const CancellationReasonScreen: React.FC<CancellationReasonScreenProps> = ({
       <View style={styles.bottomActions}>
         <Button
           label="SUBMIT"
-          onPress={handleSubmit}
+          onPress={() => {
+            handleSubmit();
+            navigation?.navigate('CancellationChargeConfirmationScreen');
+          }}
           variant="primary"
           fullWidth
           size="lg"

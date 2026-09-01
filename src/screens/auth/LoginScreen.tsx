@@ -8,14 +8,16 @@ import InputField from '../../components/atoms/InputField';
 
 export interface LoginScreenProps {
   readonly onGetOtp?: (phone: string) => void;
+  readonly navigation?: any;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onGetOtp }) => {
+const LoginScreen: React.FC<LoginScreenProps & { navigation?: any }> = ({ onGetOtp, navigation }) => {
   const [phone, setPhone] = useState('');
 
   const handleGetOtp = useCallback(() => {
     onGetOtp?.(phone);
-  }, [phone, onGetOtp]);
+    navigation?.navigate('OtpVerificationScreen');
+  }, [onGetOtp, phone, navigation]);
 
   const isValid = phone.length === 10;
 

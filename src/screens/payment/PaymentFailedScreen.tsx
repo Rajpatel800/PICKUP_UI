@@ -17,17 +17,21 @@ export interface PaymentFailedScreenProps {
   readonly onBack?: () => void;
 }
 
-const PaymentFailedScreen: React.FC<PaymentFailedScreenProps> = ({
+const PaymentFailedScreen: React.FC<PaymentFailedScreenProps & { navigation?: any }> = ({
   amountDue = '₹ 340',
   onRetry,
   onChangeMethod,
   onBack,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Pick Up</Text>
@@ -58,14 +62,18 @@ const PaymentFailedScreen: React.FC<PaymentFailedScreenProps> = ({
         <View style={styles.actionsContainer}>
           <Button
             label="Retry Payment"
-            onPress={() => onRetry?.()}
+            onPress={() =>
+              onRetry ? onRetry() : navigation?.navigate('PaymentMethodSelectedScreen')
+            }
             variant="primary"
             fullWidth
             size="lg"
           />
           <Button
             label="Change Payment Method"
-            onPress={() => onChangeMethod?.()}
+            onPress={() =>
+              onChangeMethod ? onChangeMethod() : navigation?.navigate('PaymentSelectionScreen')
+            }
             variant="secondary"
             fullWidth
             size="lg"

@@ -16,9 +16,10 @@ export interface LoadingSkeletonScreenProps {
   readonly onProfile?: () => void;
 }
 
-const LoadingSkeletonScreen: React.FC<LoadingSkeletonScreenProps> = ({
+const LoadingSkeletonScreen: React.FC<LoadingSkeletonScreenProps & { navigation?: any }> = ({
   onBack,
   onProfile,
+  navigation,
 }) => {
   // Animation values for skeleton pulse
   const pulseOpacity = React.useRef(new Animated.Value(0.5)).current;
@@ -72,12 +73,18 @@ const LoadingSkeletonScreen: React.FC<LoadingSkeletonScreenProps> = ({
       {/* Top App Bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable style={styles.iconButton} onPress={onBack}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          >
             <Feather name="menu" size={24} color={colors.onSurfaceVariant} />
           </Pressable>
         </View>
         <Text style={styles.headerTitle}>Pick Up</Text>
-        <Pressable style={styles.profileButton} onPress={onProfile}>
+        <Pressable
+          style={styles.profileButton}
+          onPress={() => (onProfile ? onProfile() : navigation?.navigate('ProfileScreen'))}
+        >
           <Feather name="user" size={20} color={colors.onSurfaceVariant} />
         </Pressable>
       </View>

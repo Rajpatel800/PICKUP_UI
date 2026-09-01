@@ -12,9 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
 import { mockActiveTrip } from '../../data/mockData';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
 
 export interface DropOtpVerificationScreenProps {
   readonly onBack?: () => void;
@@ -22,12 +19,12 @@ export interface DropOtpVerificationScreenProps {
   readonly onResend?: () => void;
 }
 
-const DropOtpVerificationScreen: React.FC<DropOtpVerificationScreenProps> = ({
+const DropOtpVerificationScreen: React.FC<DropOtpVerificationScreenProps & { navigation?: any }> = ({
   onBack,
   onVerify,
   onResend,
+  navigation,
 }) => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [otp, setOtp] = useState(['', '', '', '']);
   const inputs = useRef<Array<TextInput | null>>([]);
   const dropDetails = mockActiveTrip.stops[1]; // assuming index 1 is Drop 1
@@ -50,6 +47,11 @@ const DropOtpVerificationScreen: React.FC<DropOtpVerificationScreenProps> = ({
 
   const isOtpComplete = otp.every((val) => val.length === 1);
 
+  const handleResend = () => {
+    onResend?.();
+    setOtp(['', '', '', '']);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -60,13 +62,17 @@ const DropOtpVerificationScreen: React.FC<DropOtpVerificationScreenProps> = ({
         <View style={styles.header}>
           <Pressable
             style={styles.iconButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
             accessibilityRole="button"
           >
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Delivery Verification</Text>
-          <Pressable style={styles.iconButton} accessibilityRole="button">
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => navigation?.navigate('ShareTrackingSheetScreen')}
+            accessibilityRole="button"
+          >
             <Feather name="more-vertical" size={24} color={colors.primary} />
           </Pressable>
         </View>
@@ -125,13 +131,19 @@ const DropOtpVerificationScreen: React.FC<DropOtpVerificationScreenProps> = ({
               styles.verifyButton,
               isOtpComplete ? styles.verifyButtonActive : styles.verifyButtonInactive,
             ]}
-            onPress={() => isOtpComplete && navigation.navigate('DropCompletedState' as never)}
+            onPress={() => {
+              if (isOtpComplete) {
+                onVerify?.(otp.join(''));
+                navigation?.navigate('DropCompletedStateScreen');
+              }
+            }}
             disabled={!isOtpComplete}
+            accessibilityRole="button"
           >
             <Text style={styles.verifyButtonText}>VERIFY DELIVERY OTP</Text>
           </Pressable>
 
-          <Pressable style={styles.resendButton} onPress={() => {}}>
+          <Pressable style={styles.resendButton} onPress={handleResend} accessibilityRole="button">
             <Text style={styles.resendButtonText}>Resend OTP</Text>
           </Pressable>
         </View>

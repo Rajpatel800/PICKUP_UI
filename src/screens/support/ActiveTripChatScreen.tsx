@@ -21,12 +21,17 @@ export interface ActiveTripChatScreenProps {
   readonly onAttachFile?: () => void;
 }
 
-const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps> = ({
+const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps & { navigation?: any }> = ({
   onBack,
   onNotifications,
   onAttachFile,
+  navigation,
 }) => {
   const [messageText, setMessageText] = useState('');
+
+  const handleSend = () => {
+    setMessageText('');
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -37,7 +42,10 @@ const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Pressable style={styles.iconButton} onPress={onBack}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => (onBack ? onBack() : navigation?.goBack())}
+            >
               <Feather name="arrow-left" size={24} color={colors.onSurfaceVariant} />
             </Pressable>
             
@@ -46,12 +54,19 @@ const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps> = ({
               <View style={styles.driverSubInfo}>
                 <Text style={styles.driverSubText}>{mockActiveTrip.vehicleType}</Text>
                 <View style={styles.dotSeparator} />
-                <Feather name="star" size={12} color={colors.tertiary} style={{ fill: colors.tertiary }} />
+                <Feather name="star" size={12} color={colors.tertiary} />
                 <Text style={styles.driverSubText}>{mockActiveTrip.driverRating}</Text>
               </View>
             </View>
             
-            <Pressable style={styles.iconButton} onPress={onNotifications}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() =>
+                onNotifications
+                  ? onNotifications()
+                  : navigation?.navigate('NotificationCenterScreen')
+              }
+            >
               <Feather name="bell" size={24} color={colors.onSurfaceVariant} />
             </Pressable>
           </View>
@@ -155,9 +170,15 @@ const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps> = ({
 
         {/* Message Input Area */}
         <View style={styles.inputArea}>
-          <Pressable style={styles.attachButton} onPress={onAttachFile}>
-            <Feather name="paperclip" size={24} color={colors.onSurfaceVariant} />
-          </Pressable>
+          {onAttachFile ? (
+            <Pressable style={styles.attachButton} onPress={() => onAttachFile()}>
+              <Feather name="paperclip" size={24} color={colors.onSurfaceVariant} />
+            </Pressable>
+          ) : (
+            <View style={styles.attachButton}>
+              <Feather name="paperclip" size={24} color={colors.onSurfaceVariant} />
+            </View>
+          )}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.textInput}
@@ -168,7 +189,7 @@ const ActiveTripChatScreen: React.FC<ActiveTripChatScreenProps> = ({
               multiline
             />
           </View>
-          <Pressable style={styles.sendButton}>
+          <Pressable style={styles.sendButton} onPress={handleSend}>
             <Feather name="send" size={20} color={colors.onPrimary} style={{ marginLeft: -2, marginTop: 2 }} />
           </Pressable>
         </View>

@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius, typography } from '../../theme';
+import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 
 export interface ValidateBookingScreenProps {
@@ -16,19 +16,23 @@ export interface ValidateBookingScreenProps {
   readonly onHelp?: () => void;
 }
 
-const ValidateBookingScreen: React.FC<ValidateBookingScreenProps> = ({
+const ValidateBookingScreen: React.FC<ValidateBookingScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.onSurfaceVariant} />
         </Pressable>
         <Text style={styles.headerTitle}>Validate Booking</Text>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Feather name="help-circle" size={24} color={colors.onSurfaceVariant} />
         </Pressable>
       </View>
@@ -189,6 +193,19 @@ const ValidateBookingScreen: React.FC<ValidateBookingScreenProps> = ({
         </View>
 
       </ScrollView>
+
+      {/* Bottom Action Bar */}
+      <View style={styles.bottomBar}>
+        <Pressable
+          style={styles.confirmButton}
+          onPress={() => navigation?.navigate('BookingConfirmedScreen')}
+          accessibilityRole="button"
+          accessibilityLabel="Confirm and book"
+        >
+          <Text style={styles.confirmText}>CONFIRM &amp; BOOK</Text>
+          <Feather name="arrow-right" size={18} color={colors.onPrimary} />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 };
@@ -346,6 +363,33 @@ const styles = StyleSheet.create({
   rowGridItem: {
     flex: 1,
     gap: 4,
+  },
+
+  // Bottom Bar
+  bottomBar: {
+    backgroundColor: colors.surfaceContainerLowest,
+    borderTopWidth: 1,
+    borderTopColor: colors.surfaceVariant + '33', // 20%
+    paddingHorizontal: spacing.marginMobile,
+    paddingTop: spacing.marginMobile,
+    paddingBottom: spacing.marginMobile,
+  },
+  confirmButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.marginMobile,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    ...shadows.elevated,
+  },
+  confirmText: {
+    fontSize: typography.headlineSm.fontSize,
+    fontWeight: typography.headlineSm.fontWeight,
+    color: colors.onPrimary,
+    fontFamily: typography.headlineSm.fontFamily,
   },
 });
 

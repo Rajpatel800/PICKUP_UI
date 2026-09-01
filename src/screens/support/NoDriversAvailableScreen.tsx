@@ -16,10 +16,11 @@ export interface NoDriversAvailableScreenProps {
   readonly onMenu?: () => void;
 }
 
-const NoDriversAvailableScreen: React.FC<NoDriversAvailableScreenProps> = ({
+const NoDriversAvailableScreen: React.FC<NoDriversAvailableScreenProps & { navigation?: any }> = ({
   onRetry,
   onReturnHome,
   onMenu,
+  navigation,
 }) => {
   return (
     <View style={styles.container}>
@@ -31,7 +32,10 @@ const NoDriversAvailableScreen: React.FC<NoDriversAvailableScreenProps> = ({
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Pressable style={styles.iconButton} onPress={onMenu}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => (onMenu ? onMenu() : navigation?.goBack())}
+            >
               <Feather name="menu" size={24} color={colors.primary} />
             </Pressable>
             <Text style={styles.headerTitle}>Pick Up</Text>
@@ -58,13 +62,17 @@ const NoDriversAvailableScreen: React.FC<NoDriversAvailableScreenProps> = ({
             <View style={styles.actionsContainer}>
               <Button
                 label="Retry Search"
-                onPress={() => onRetry?.()}
+                onPress={() =>
+                  onRetry ? onRetry() : navigation?.navigate('AssignmentFailedScreen')
+                }
                 variant="primary"
                 fullWidth
               />
               <Button
                 label="Return to Home"
-                onPress={() => onReturnHome?.()}
+                onPress={() =>
+                  onReturnHome ? onReturnHome() : navigation?.navigate('HomeScreen')
+                }
                 variant="secondary"
                 fullWidth
               />

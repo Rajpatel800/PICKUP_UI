@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import Button from '../../components/atoms/Button';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
 
 export interface OtpVerificationScreenProps {
   readonly phoneNumber?: string;
@@ -27,7 +24,7 @@ export interface OtpVerificationScreenProps {
   readonly isExpired?: boolean;
 }
 
-const OtpVerificationScreen: React.FC<OtpVerificationScreenProps> = ({
+const OtpVerificationScreen: React.FC<OtpVerificationScreenProps & { navigation?: any }> = ({
   phoneNumber = '+91 98765 43210',
   timerSeconds = 30,
   onVerify,
@@ -37,10 +34,27 @@ const OtpVerificationScreen: React.FC<OtpVerificationScreenProps> = ({
   isLoading = false,
   error = null,
   isExpired = false,
+  navigation,
 }) => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [otp, setOtp] = useState(['', '', '', '']);
+  const [remaining, setRemaining] = useState(timerSeconds);
   const inputRefs = useRef<Array<TextInput | null>>([null, null, null, null]);
+
+  // Live countdown for the "Resend OTP" link.
+  useEffect(() => {
+    if (remaining <= 0) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setRemaining((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [remaining]);
+
+  const handleResend = () => {
+    onResend?.();
+    setRemaining(timerSeconds);
+  };
 
   const handleOtpChange = (text: string, index: number) => {
     // Only allow numbers
@@ -72,10 +86,8 @@ const OtpVerificationScreen: React.FC<OtpVerificationScreenProps> = ({
   };
 
   const handleVerify = () => {
-    const fullOtp = otp.join('');
-    if (fullOtp.length === 4) {
-      onVerify?.(fullOtp);
-    }
+    onVerify?.(otp.join(''));
+    navigation?.navigate('PermissionScreen');
   };
 
   const formatTimer = (seconds: number) => {
@@ -88,10 +100,10 @@ const OtpVerificationScreen: React.FC<OtpVerificationScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top Navigation */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
-        <Text style={styles.headerTitle}>Driver Hub</Text>
+        <Text style={styles.headerTitle}>Pick Up</Text>
         <View style={styles.iconButton} />
       </View>
 
@@ -141,12 +153,12 @@ const OtpVerificationScreen: React.FC<OtpVerificationScreenProps> = ({
           )}
 
           <View style={styles.linksContainer}>
-            <Pressable onPress={onResend} disabled={timerSeconds > 0}>
-              <Text style={[styles.resendLink, timerSeconds > 0 && styles.resendDisabled]}>
-                Resend OTP ({formatTimer(timerSeconds)})
+            <Pressable onPress={handleResend} disabled={remaining > 0}>
+              <Text style={[styles.resendLink, remaining > 0 && styles.resendDisabled]}>
+                Resend OTP ({formatTimer(remaining)})
               </Text>
             </Pressable>
-            <Pressable onPress={onChangeNumber}>
+            <Pressable onPress={() => (onChangeNumber ? onChangeNumber() : navigation?.goBack())}>
               <Text style={styles.changeLink}>Change Number</Text>
             </Pressable>
           </View>

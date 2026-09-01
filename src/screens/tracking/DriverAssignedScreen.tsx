@@ -1,16 +1,20 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import Button from '../../components/atoms/Button';
-import DraggableBottomSheet from '../../components/organisms/DraggableBottomSheet';
+import { useBooking } from '../../state/BookingContext';
+import { useTripStatus } from '../../hooks/useTripStatus';
+import { getDriver } from '../../api/engine';
+import type { GeoPoint } from '../../api/types';
+import MapCanvas, { type MapMarker } from '../../components/map/MapCanvas';
+import { useRoute } from '../../hooks/useRoute';
 
 export interface DriverAssignedScreenProps {
   readonly onMenuPress?: () => void;
@@ -18,36 +22,125 @@ export interface DriverAssignedScreenProps {
   readonly onTripDetails?: () => void;
 }
 
-const DriverAssignedScreen: React.FC<DriverAssignedScreenProps> = ({
+const DriverAssignedScreen: React.FC<DriverAssignedScreenProps & { navigation?: any }> = ({
   onMenuPress,
   onContactDriver,
   onTripDetails,
+  navigation,
 }) => {
+  const { assignedDriver, trip, setTrip } = useBooking();
+
+  // Poll the trip so we react the moment the driver arrives, verifies pickup,
+  // or finishes the trip. Without this the screen would stay on "Driver Assigned"
+  // forever even after the ride was completed.
+  const { trip: polled } = useTripStatus(trip?.id, { intervalMs: 3_000 });
+  useEffect(() => {
+    if (polled) setTrip(polled);
+  }, [polled, setTrip]);
+
+  const current = polled ?? trip;
+  const status = current?.status;
+
+  // Advance as soon as the engine reports real progress. `replace` (not
+  // `navigate`) removes this screen from the stack so its `useTripStatus`
+  // poll stops firing — otherwise later status changes would double-push
+  // the same forward screens on top of each other.
+  useEffect(() => {
+    if (!status) return;
+    if (status === 'DRIVER_ARRIVED') {
+      navigation?.replace('PickupOtpVerificationScreen');
+    } else if (status === 'PICKUP_VERIFIED' || status === 'IN_TRANSIT' || status === 'DROP_PROGRESS') {
+      navigation?.replace('CustomerLiveTrackingScreen');
+    } else if (status === 'DELIVERED' || status === 'COMPLETED') {
+      navigation?.replace('TripCompletedScreen');
+    } else if (status === 'CANCELLED') {
+      navigation?.replace('TripCancelledStatusScreen');
+    }
+  }, [status, navigation]);
+
+  // Live driver location. Polled here rather than pushed because the engine has
+  // no WebSocket channel; the driver app PATCHes their position every ~5s.
+  const [driverPoint, setDriverPoint] = useState<GeoPoint | undefined>(
+    assignedDriver
+      ? { latitude: assignedDriver.latitude, longitude: assignedDriver.longitude }
+      : undefined
+  );
+  const driverId = current?.driverId ?? assignedDriver?.id;
+
+  useEffect(() => {
+    if (!driverId) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const driver = await getDriver(driverId);
+        if (!cancelled) {
+          setDriverPoint({ latitude: driver.latitude, longitude: driver.longitude });
+        }
+      } catch {
+        // Keep the last known position on a transient failure.
+      }
+    };
+    void tick();
+    const id = setInterval(tick, 5_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [driverId]);
+
+  // Route from the driver to the pickup: they're on their way to fetch you.
+  // Recomputed only when the driver crosses ~11m boundaries (see useRoute).
+  const roadRoute = useRoute(driverPoint, current?.pickup);
+
+  const markers = useMemo<readonly MapMarker[]>(() => {
+    const built: MapMarker[] = [];
+    if (current?.pickup) {
+      built.push({
+        id: 'pickup',
+        kind: 'pickup',
+        coordinate: current.pickup,
+        title: 'Pickup',
+        description: current.pickup.address,
+      });
+    }
+    if (current?.drop) {
+      built.push({
+        id: 'drop',
+        kind: 'drop',
+        coordinate: current.drop,
+        title: 'Drop',
+        description: current.drop.address,
+      });
+    }
+    if (driverPoint) {
+      built.push({
+        id: 'driver',
+        kind: 'driver',
+        coordinate: driverPoint,
+        title: assignedDriver?.name ?? 'Driver',
+        description: assignedDriver?.vehicleType,
+      });
+    }
+    return built;
+  }, [current?.pickup, current?.drop, driverPoint, assignedDriver]);
+
   return (
     <View style={styles.container}>
-      {/* Map Background Mock */}
-      <View style={styles.mapBackground}>
-        {/* Pickup Point */}
-        <View style={styles.pickupPinContainer}>
-          <View style={styles.pickupPinDot} />
-          <View style={styles.pickupPinLine} />
-        </View>
-
-        {/* Driver Current Location */}
-        <View style={styles.driverLocationContainer}>
-          <View style={styles.driverPin}>
-            <MaterialIcons name="local-shipping" size={24} color={colors.primary} />
-          </View>
-          <View style={styles.etaBadge}>
-            <Text style={styles.etaBadgeText}>5 mins away</Text>
-          </View>
-        </View>
-      </View>
+      <MapCanvas
+        style={StyleSheet.absoluteFill as any}
+        markers={markers}
+        fitToMarkers={markers.length > 1}
+        polyline={roadRoute}
+      />
 
       {/* Top App Bar */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <Pressable style={styles.iconButton} onPress={onMenuPress}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onMenuPress ? onMenuPress() : navigation?.goBack())}
+            accessibilityRole="button"
+          >
             <Feather name="menu" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Pick Up</Text>
@@ -67,11 +160,7 @@ const DriverAssignedScreen: React.FC<DriverAssignedScreenProps> = ({
         <View style={styles.statusHeaderRow}>
           <View style={styles.statusTextCol}>
             <Text style={styles.statusTitle}>Driver Assigned</Text>
-            <Text style={styles.statusSubtitle}>Arriving in 5 mins</Text>
-          </View>
-          <View style={styles.ratingBadge}>
-            <MaterialIcons name="star" size={16} color={colors.onSecondaryContainer} />
-            <Text style={styles.ratingText}>4.8</Text>
+            <Text style={styles.statusSubtitle}>Heading to your pickup point</Text>
           </View>
         </View>
 
@@ -81,26 +170,38 @@ const DriverAssignedScreen: React.FC<DriverAssignedScreenProps> = ({
             <Feather name="user" size={32} color={colors.onSurfaceVariant} />
           </View>
           <View style={styles.driverInfoText}>
-            <Text style={styles.driverName}>Rajesh K.</Text>
-            <Text style={styles.vehicleType}>Tata Ace</Text>
+            <Text style={styles.driverName}>{assignedDriver?.name ?? 'Driver assigned'}</Text>
+            <Text style={styles.vehicleType}>{assignedDriver?.vehicleType ?? '—'}</Text>
           </View>
-          <View style={styles.vehiclePlateBox}>
-            <Text style={styles.vehiclePlateText}>RJ 19 XX 1234</Text>
-          </View>
+          {typeof assignedDriver?.distanceKm === 'number' && (
+            <View style={styles.vehiclePlateBox}>
+              <Text style={styles.vehiclePlateText}>
+                {assignedDriver.distanceKm.toFixed(1)} km
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* The engine gives the OTP to the customer to read out to the driver. */}
+        {trip?.otp && (
+          <View style={styles.otpRow}>
+            <Text style={styles.otpLabel}>PICKUP OTP</Text>
+            <Text style={styles.otpValue}>{trip.otp}</Text>
+          </View>
+        )}
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
           <Button
             label="Contact Driver"
-            onPress={() => onContactDriver?.()}
+            onPress={() => (onContactDriver ? onContactDriver() : navigation?.navigate('CallDriverScreen'))}
             variant="primary"
             fullWidth
             icon={<MaterialIcons name="call" size={20} color={colors.onPrimary} />}
           />
           <Button
             label="Trip Details"
-            onPress={() => onTripDetails?.()}
+            onPress={() => (onTripDetails ? onTripDetails() : navigation?.navigate('DriverAssignedExpandedScreen'))}
             variant="secondary"
             fullWidth
             icon={<MaterialIcons name="list-alt" size={20} color={colors.onSecondaryContainer} />}
@@ -334,6 +435,30 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'column',
     gap: spacing.sm,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.secondaryContainer,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  otpLabel: {
+    fontSize: typography.labelCaps.fontSize,
+    fontWeight: typography.labelCaps.fontWeight,
+    color: colors.onSecondaryContainer,
+    fontFamily: typography.labelCaps.fontFamily,
+    letterSpacing: typography.labelCaps.letterSpacing,
+  },
+  otpValue: {
+    fontSize: typography.headlineMd.fontSize,
+    fontWeight: '700',
+    color: colors.onSecondaryContainer,
+    fontFamily: typography.dataMono.fontFamily,
+    letterSpacing: 4,
   },
 });
 

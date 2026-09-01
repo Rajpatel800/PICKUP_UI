@@ -21,7 +21,7 @@ export interface CancellationConfirmationScreenProps {
   readonly onClose?: () => void;
 }
 
-const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenProps> = ({
+const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenProps & { navigation?: any }> = ({
   eta = 'Driver is 5 mins away',
   vehicleInfo = 'Tata Ace • RJ 19 XX 1234',
   cancelFee = '₹112.50',
@@ -30,6 +30,7 @@ const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenPro
   onCancelTrip,
   onKeepTrip,
   onClose,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -47,7 +48,10 @@ const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenPro
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Cancel Trip?</Text>
-            <Pressable style={styles.closeButton} onPress={onClose}>
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => (onClose ? onClose() : navigation?.goBack())}
+            >
               <Feather name="x" size={20} color={colors.onSurfaceVariant} />
             </Pressable>
           </View>
@@ -81,7 +85,10 @@ const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenPro
           <View style={styles.actionsContainer}>
             <Button
               label="CANCEL TRIP"
-              onPress={() => onCancelTrip?.()}
+              onPress={() => {
+                onCancelTrip?.();
+                navigation?.navigate('CancellationResultScreen');
+              }}
               variant="primary" // The design has it red, but we'll use a custom style or Button variant if we had one. Using button with custom color via style.
               fullWidth
               size="lg"
@@ -89,7 +96,7 @@ const CancellationConfirmationScreen: React.FC<CancellationConfirmationScreenPro
             />
             <Button
               label="KEEP TRIP"
-              onPress={() => onKeepTrip?.()}
+              onPress={() => (onKeepTrip ? onKeepTrip() : navigation?.goBack())}
               variant="secondary"
               fullWidth
               size="lg"

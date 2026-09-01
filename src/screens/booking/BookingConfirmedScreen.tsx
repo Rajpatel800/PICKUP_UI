@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,32 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
+import MapCanvas, { type MapMarker } from '../../components/map/MapCanvas';
+import { useRoute } from '../../hooks/useRoute';
 
 export interface BookingConfirmedScreenProps {
   readonly onCancel?: () => void;
 }
 
-const BookingConfirmedScreen: React.FC<BookingConfirmedScreenProps> = ({
+const BookingConfirmedScreen: React.FC<BookingConfirmedScreenProps & { navigation?: any }> = ({
   onCancel,
+  navigation,
 }) => {
+  const { draft, primaryDrop } = useBooking();
+  const roadRoute = useRoute(draft.pickup, primaryDrop);
+
+  const markers = useMemo<readonly MapMarker[]>(() => {
+    const built: MapMarker[] = [];
+    if (draft.pickup) {
+      built.push({ id: 'pickup', kind: 'pickup', coordinate: draft.pickup, title: 'Pickup' });
+    }
+    if (primaryDrop) {
+      built.push({ id: 'drop', kind: 'drop', coordinate: primaryDrop, title: 'Drop' });
+    }
+    return built;
+  }, [draft.pickup, primaryDrop]);
+
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -37,6 +55,14 @@ const BookingConfirmedScreen: React.FC<BookingConfirmedScreenProps> = ({
     ).start();
   }, [progressAnim]);
 
+  // Auto-navigate to FindingDriverScreen after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('FindingDriverScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
   const scaleX = progressAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0, 0.7, 1],
@@ -49,12 +75,16 @@ const BookingConfirmedScreen: React.FC<BookingConfirmedScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBCNqQFkoYKnNnFAzyxakSUaqPfR_rXoth8KcCUfvZaqqLWEQuuRDxiHPircSK1GZ9Zhpsec_xrx19M_Q-_CQZkBte3TCMrSErPThJaoCsET164CCzdvfbAmYG5LuLGnLp7Fd0NT1WS4SnBwqHVj9WR4tUvPcRn4efryUMg4ycfMfUqLtv0ia484KLfLJp93_Z_-IH9Ly_S7LuWIQLTZqI28Iuzo5OzGwXqD3tW2aNelura2wQX8Ns3' }}
+      <MapCanvas
         style={styles.mapBackground}
+        center={draft.pickup}
+        markers={markers}
+        fitToMarkers={markers.length > 1}
+        polyline={roadRoute}
+        scrollEnabled={false}
       >
         <View style={styles.overlay} />
-      </ImageBackground>
+      </MapCanvas>
 
       <View style={styles.bottomSheet}>
         <SafeAreaView edges={['bottom']} style={styles.safeArea}>
@@ -85,7 +115,7 @@ const BookingConfirmedScreen: React.FC<BookingConfirmedScreenProps> = ({
 
             <Pressable
               style={styles.cancelButton}
-              onPress={onCancel}
+              onPress={() => (onCancel ? onCancel() : navigation?.navigate('CancellationReasonScreen'))}
               accessibilityRole="button"
             >
               <Text style={styles.cancelButtonText}>Cancel Booking</Text>

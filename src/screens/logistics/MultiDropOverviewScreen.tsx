@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
+import { useBooking } from '../../state/BookingContext';
 
 export interface DropStop {
   readonly id: string;
@@ -51,20 +52,50 @@ const defaultStops: readonly DropStop[] = [
   },
 ];
 
-const MultiDropOverviewScreen: React.FC<MultiDropOverviewScreenProps> = ({
+const MultiDropOverviewScreen: React.FC<MultiDropOverviewScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
   onEditStop,
   onAddStop,
-  stops = defaultStops,
+  stops: stopsProp,
+  navigation,
 }) => {
+  const { draft } = useBooking();
+
+  // Build the timeline from the real booking when there is one, so the review
+  // reflects what the user actually chose. Falls back to sample stops for the
+  // Gallery, where no booking exists.
+  const stops = useMemo<readonly DropStop[]>(() => {
+    if (stopsProp) return stopsProp;
+    if (!draft.pickup && !draft.drops.length) return defaultStops;
+
+    const built: DropStop[] = [];
+    if (draft.pickup) {
+      built.push({
+        id: 'pickup',
+        type: 'pickup',
+        label: 'Pickup',
+        title: draft.pickup.address || 'Current Location',
+      });
+    }
+    draft.drops.forEach((drop, index) => {
+      built.push({
+        id: `drop-${index}`,
+        type: 'drop',
+        label: `Drop ${index + 1}`,
+        title: drop.address,
+        receiver: draft.receiverName,
+      });
+    });
+    return built;
+  }, [stopsProp, draft.pickup, draft.drops, draft.receiverName]);
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Top App Bar */}
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -122,7 +153,13 @@ const MultiDropOverviewScreen: React.FC<MultiDropOverviewScreenProps> = ({
 
                   <Pressable
                     style={styles.editButton}
-                    onPress={() => onEditStop?.(stop.id)}
+                    onPress={() =>
+                      onEditStop
+                        ? onEditStop(stop.id)
+                        : navigation?.navigate(
+                            isPickup ? 'SelectLocationScreen' : 'SelectDropLocationScreen'
+                          )
+                    }
                     accessibilityRole="button"
                     accessibilityLabel={`Edit ${stop.label}`}
                   >
@@ -142,7 +179,7 @@ const MultiDropOverviewScreen: React.FC<MultiDropOverviewScreenProps> = ({
             </View>
             <Pressable
               style={styles.addStopButton}
-              onPress={onAddStop}
+              onPress={() => (onAddStop ? onAddStop() : navigation?.navigate('SelectDropLocationScreen'))}
               accessibilityRole="button"
             >
               <Text style={styles.addStopText}>Add Drop Location</Text>
@@ -155,7 +192,10 @@ const MultiDropOverviewScreen: React.FC<MultiDropOverviewScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.continueButton}
-          onPress={onContinue}
+          onPress={() => {
+            onContinue?.();
+            navigation?.navigate('SelectVehicleScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Continue"
         >

@@ -15,10 +15,11 @@ export interface AssignmentFailedScreenProps {
   readonly onCancel?: () => void;
 }
 
-const AssignmentFailedScreen: React.FC<AssignmentFailedScreenProps> = ({
+const AssignmentFailedScreen: React.FC<AssignmentFailedScreenProps & { navigation?: any }> = ({
   onClose,
   onRetry,
   onCancel,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -26,7 +27,7 @@ const AssignmentFailedScreen: React.FC<AssignmentFailedScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onClose}
+          onPress={() => (onClose ? onClose() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Close"
         >
@@ -53,14 +54,14 @@ const AssignmentFailedScreen: React.FC<AssignmentFailedScreenProps> = ({
       <View style={styles.actionArea}>
         <Pressable
           style={styles.primaryButton}
-          onPress={onRetry}
+          onPress={() => (onRetry ? onRetry() : navigation?.navigate('FindingDriverScreen'))}
           accessibilityRole="button"
         >
           <Text style={styles.primaryButtonText}>Retry Booking</Text>
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
-          onPress={onCancel}
+          onPress={() => (onCancel ? onCancel() : navigation?.navigate('HomeScreen'))}
           accessibilityRole="button"
         >
           <Text style={styles.secondaryButtonText}>Cancel</Text>

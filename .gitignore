@@ -3,6 +3,14 @@
 # dependencies
 node_modules/
 
+# Local checkout of Pickup-Go-Core-Engine for development only.
+# The backend lives in its own repo: github.com/vickysingh009/Pickup-Go-Core-Engine
+engine/
+
+# Standalone driver app. Separate project with its own package.json — move it
+# out of this folder or give it its own git repo.
+pickup-driver/
+
 # Expo
 .expo/
 dist/
@@ -30,8 +38,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — hold the API base URL and Google Maps key
+.env
 .env*.local
+!.env.example
 
 # typescript
 *.tsbuildinfo

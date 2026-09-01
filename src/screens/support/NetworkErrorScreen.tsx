@@ -16,21 +16,28 @@ export interface NetworkErrorScreenProps {
   readonly onCheckSettings?: () => void;
 }
 
-const NetworkErrorScreen: React.FC<NetworkErrorScreenProps> = ({
+const NetworkErrorScreen: React.FC<NetworkErrorScreenProps & { navigation?: any }> = ({
   onBack,
   onMore,
   onRetry,
   onCheckSettings,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top Navigation */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurfaceVariant} />
         </Pressable>
-        <Text style={styles.headerTitle}>Logistics Pro</Text>
-        <Pressable style={styles.iconButton} onPress={onMore}>
+        <Text style={styles.headerTitle}>Pick Up</Text>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onMore ? onMore() : navigation?.goBack())}
+        >
           <Feather name="more-vertical" size={24} color={colors.onSurfaceVariant} />
         </Pressable>
       </View>
@@ -50,12 +57,24 @@ const NetworkErrorScreen: React.FC<NetworkErrorScreenProps> = ({
           </Text>
 
           <View style={styles.actionContainer}>
-            <Pressable style={styles.primaryButton} onPress={onRetry}>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() =>
+                onRetry ? onRetry() : navigation?.navigate('CustomerLiveTrackingScreen')
+              }
+            >
               <Feather name="refresh-cw" size={18} color={colors.onPrimary} />
               <Text style={styles.primaryButtonText}>Retry</Text>
             </Pressable>
             
-            <Pressable style={styles.secondaryButton} onPress={onCheckSettings}>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() =>
+                onCheckSettings
+                  ? onCheckSettings()
+                  : navigation?.navigate('RouteUnavailableScreen')
+              }
+            >
               <Text style={styles.secondaryButtonText}>Check Network Settings</Text>
             </Pressable>
           </View>

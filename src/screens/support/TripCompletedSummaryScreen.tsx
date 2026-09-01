@@ -19,12 +19,13 @@ export interface TripCompletedSummaryScreenProps {
   readonly onBackToHome?: () => void;
 }
 
-const TripCompletedSummaryScreen: React.FC<TripCompletedSummaryScreenProps> = ({
+const TripCompletedSummaryScreen: React.FC<TripCompletedSummaryScreenProps & { navigation?: any }> = ({
   onBack,
   onMore,
   onRateDriver,
   onViewReceipt,
   onBackToHome,
+  navigation,
 }) => {
   const stops = mockActiveTrip.stops;
 
@@ -33,11 +34,19 @@ const TripCompletedSummaryScreen: React.FC<TripCompletedSummaryScreenProps> = ({
       {/* Top App Bar */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Pressable style={styles.iconButton} onPress={onBack}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          >
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Trip Completed</Text>
-          <Pressable style={styles.iconButton} onPress={onMore}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() =>
+              onMore ? onMore() : navigation?.navigate('ShareTrackingSheetScreen')
+            }
+          >
             <Feather name="more-vertical" size={24} color={colors.primary} />
           </Pressable>
         </View>
@@ -124,17 +133,30 @@ const TripCompletedSummaryScreen: React.FC<TripCompletedSummaryScreenProps> = ({
 
         {/* Actions */}
         <View style={styles.actionContainer}>
-          <Pressable style={styles.rateButton} onPress={onRateDriver}>
+          <Pressable
+            style={styles.rateButton}
+            onPress={() =>
+              onRateDriver ? onRateDriver() : navigation?.navigate('DriverRatingScreen')
+            }
+          >
             <Feather name="star" size={20} color={colors.onPrimary} />
             <Text style={styles.rateButtonText}>RATE DRIVER</Text>
           </Pressable>
           
-          <Pressable style={styles.receiptButton} onPress={onViewReceipt}>
+          <Pressable
+            style={styles.receiptButton}
+            onPress={() =>
+              onViewReceipt ? onViewReceipt() : navigation?.navigate('DigitalReceiptScreen')
+            }
+          >
             <Feather name="file-text" size={20} color={colors.onSecondaryContainer} />
             <Text style={styles.receiptButtonText}>VIEW RECEIPT</Text>
           </Pressable>
           
-          <Pressable style={styles.homeButton} onPress={onBackToHome}>
+          <Pressable
+            style={styles.homeButton}
+            onPress={() => (onBackToHome ? onBackToHome() : navigation?.navigate('HomeScreen'))}
+          >
             <Text style={styles.homeButtonText}>BACK TO HOME</Text>
           </Pressable>
         </View>

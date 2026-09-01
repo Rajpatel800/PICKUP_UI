@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -52,30 +52,41 @@ export interface SavedAddressesScreenProps {
   readonly onAddAddress?: () => void;
 }
 
-const SavedAddressesScreen: React.FC<SavedAddressesScreenProps> = ({
+const SavedAddressesScreen: React.FC<SavedAddressesScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   onEditAddress,
   onDeleteAddress,
   onAddAddress,
+  navigation,
 }) => {
+  const [addresses, setAddresses] = useState<SavedAddress[]>(MOCK_ADDRESSES);
+
+  const handleDelete = (addressId: string) => {
+    onDeleteAddress?.(addressId);
+    setAddresses((prev) => prev.filter((item) => item.id !== addressId));
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable style={styles.iconButton} onPress={onBack}>
+          <Pressable style={styles.iconButton} onPress={() => navigation?.goBack()}>
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Saved Addresses</Text>
         </View>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {MOCK_ADDRESSES.map((address) => (
+        {addresses.map((address) => (
           <View key={address.id} style={styles.card}>
             {address.isPrimary && <View style={styles.primaryAccentLine} />}
             
@@ -99,13 +110,16 @@ const SavedAddressesScreen: React.FC<SavedAddressesScreenProps> = ({
               <View style={styles.cardActions}>
                 <Pressable
                   style={styles.actionButton}
-                  onPress={() => onEditAddress?.(address.id)}
+                  onPress={() => {
+                    onEditAddress?.(address.id);
+                    navigation?.navigate('SelectDropLocationScreen');
+                  }}
                 >
                   <Feather name="edit-2" size={20} color={colors.onSurfaceVariant} />
                 </Pressable>
                 <Pressable
                   style={styles.actionButton}
-                  onPress={() => onDeleteAddress?.(address.id)}
+                  onPress={() => handleDelete(address.id)}
                 >
                   <Feather name="trash-2" size={20} color={colors.onSurfaceVariant} />
                 </Pressable>
@@ -128,7 +142,10 @@ const SavedAddressesScreen: React.FC<SavedAddressesScreenProps> = ({
 
       {/* Fixed Bottom Action Area (Mobile) */}
       <View style={styles.bottomActionArea}>
-        <Pressable style={styles.addButton} onPress={onAddAddress}>
+        <Pressable
+          style={styles.addButton}
+          onPress={() => (onAddAddress ? onAddAddress() : navigation?.navigate('AddressSearchScreen'))}
+        >
           <Feather name="plus" size={24} color={colors.onPrimary} />
           <Text style={styles.addButtonText}>Add New Address</Text>
         </Pressable>

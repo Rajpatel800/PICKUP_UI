@@ -5,8 +5,8 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 
@@ -18,6 +18,8 @@ export interface NotificationItem {
   icon: keyof typeof MaterialIcons.glyphMap;
   isUnread?: boolean;
   type: 'trip' | 'account' | 'payment';
+  /** Route this notification opens when tapped. */
+  destination?: string;
 }
 
 export interface NotificationCenterScreenProps {
@@ -37,6 +39,7 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
     icon: 'directions-car',
     isUnread: true,
     type: 'trip',
+    destination: 'CustomerLiveTrackingScreen',
   },
   {
     id: '2',
@@ -46,6 +49,7 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
     icon: 'credit-card',
     isUnread: true,
     type: 'payment',
+    destination: 'DigitalReceiptScreen',
   },
   {
     id: '3',
@@ -55,6 +59,7 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
     icon: 'check-circle',
     isUnread: false,
     type: 'trip',
+    destination: 'TripCompletedSummaryScreen',
   },
   {
     id: '4',
@@ -64,6 +69,7 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
     icon: 'manage-accounts',
     isUnread: false,
     type: 'account',
+    destination: 'CustomerSettingsScreen',
   },
   {
     id: '5',
@@ -73,17 +79,19 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
     icon: 'cancel',
     isUnread: false,
     type: 'trip',
+    destination: 'TripCancelledStatusScreen',
   },
 ];
 
 const FILTER_TABS = ['All', 'Trips', 'Account'];
 
-const NotificationCenterScreen: React.FC<NotificationCenterScreenProps> = ({
+const NotificationCenterScreen: React.FC<NotificationCenterScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   onNotificationPress,
   onDeleteNotification,
   notifications = DEFAULT_NOTIFICATIONS,
+  navigation,
 }) => {
   const [activeTab, setActiveTab] = useState('All');
 
@@ -104,7 +112,12 @@ const NotificationCenterScreen: React.FC<NotificationCenterScreenProps> = ({
     <Pressable
       key={item.id}
       style={styles.notificationCard}
-      onPress={() => onNotificationPress?.(item.id)}
+      onPress={() => {
+        onNotificationPress?.(item.id);
+        if (item.destination) {
+          navigation?.navigate(item.destination);
+        }
+      }}
     >
       {item.isUnread && <View style={styles.unreadIndicator} />}
       
@@ -130,11 +143,17 @@ const NotificationCenterScreen: React.FC<NotificationCenterScreenProps> = ({
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.iconButton}>
+        <Pressable
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          style={styles.iconButton}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Precision Mobility</Text>
-        <Pressable onPress={onHelp} style={styles.iconButton}>
+        <Text style={styles.headerTitle}>Pick Up</Text>
+        <Pressable
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+          style={styles.iconButton}
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>

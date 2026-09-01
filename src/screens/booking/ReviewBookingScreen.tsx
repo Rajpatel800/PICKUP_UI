@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { strings, mockBookingReview } from '../../data/mockData';
+import { useBooking } from '../../state/BookingContext';
 import TopAppBar from '../../components/organisms/TopAppBar';
 import Card from '../../components/molecules/Card';
 import LocationInputRow from '../../components/molecules/LocationInputRow';
@@ -19,20 +20,29 @@ export interface ReviewBookingScreenProps {
   readonly onChangePayment?: () => void;
 }
 
-const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
+const ReviewBookingScreen: React.FC<ReviewBookingScreenProps & { navigation?: any }> = ({
   onBack,
   onConfirm,
   onEditPickup,
   onEditDrop,
   onChangeVehicle,
   onChangePayment,
+  navigation,
 }) => {
+  const { draft } = useBooking();
+  const estimate = draft.fareEstimate;
+
+  // Fall back to sample data so the Gallery still renders without a booking.
+  const dropAddresses = draft.drops.length
+    ? draft.drops.map((d) => d.address)
+    : mockBookingReview.drops;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TopAppBar
         title={strings.booking.reviewBooking}
         leadingIcon={<Text style={styles.backIcon}>←</Text>}
-        onLeadingPress={onBack}
+        onLeadingPress={() => (onBack ? onBack() : navigation?.goBack())}
       />
 
       <ScrollView
@@ -44,19 +54,19 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
         <Card variant="outlined" padding="md">
           <LocationInputRow
             label="Pickup"
-            address={mockBookingReview.pickup}
+            address={draft.pickup?.address ?? mockBookingReview.pickup}
             dotColor={colors.statusGreen}
-            onPress={onEditPickup}
+            onPress={() => (onEditPickup ? onEditPickup() : navigation?.navigate('SelectLocationScreen'))}
             showConnector
           />
-          {mockBookingReview.drops.map((drop, i) => (
+          {dropAddresses.map((drop, i) => (
             <LocationInputRow
               key={`drop-${i}`}
               label={`Drop ${i + 1}`}
               address={drop}
               dotColor={colors.primary}
-              onPress={onEditDrop}
-              showConnector={i < mockBookingReview.drops.length - 1}
+              onPress={() => (onEditDrop ? onEditDrop() : navigation?.navigate('SelectDropLocationScreen'))}
+              showConnector={i < dropAddresses.length - 1}
             />
           ))}
         </Card>
@@ -65,10 +75,13 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
         <Card variant="outlined" padding="none">
           <ListRow
             title="Vehicle"
-            subtitle={mockBookingReview.vehicleType}
+            subtitle={draft.vehicleType ?? mockBookingReview.vehicleType}
             leading={<Text style={styles.itemIcon}>🚛</Text>}
             trailing={
-              <Text style={styles.changeText} onPress={onChangeVehicle}>
+              <Text
+                style={styles.changeText}
+                onPress={() => (onChangeVehicle ? onChangeVehicle() : navigation?.navigate('SelectVehicleScreen'))}
+              >
                 Change
               </Text>
             }
@@ -76,10 +89,16 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
           <Divider />
           <ListRow
             title="Estimated Fare"
-            subtitle={`${mockBookingReview.distance} • ${mockBookingReview.estimatedTime}`}
+            subtitle={
+              estimate
+                ? `${estimate.distanceKm} km • about ${estimate.durationMin} min`
+                : `${mockBookingReview.distance} • ${mockBookingReview.estimatedTime}`
+            }
             leading={<Text style={styles.itemIcon}>💰</Text>}
             trailing={
-              <Text style={styles.fareText}>{mockBookingReview.estimatedFare}</Text>
+              <Text style={styles.fareText}>
+                {estimate ? `₹ ${estimate.fare}` : mockBookingReview.estimatedFare}
+              </Text>
             }
           />
           <Divider />
@@ -88,7 +107,10 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
             subtitle={mockBookingReview.paymentMethod}
             leading={<Text style={styles.itemIcon}>💳</Text>}
             trailing={
-              <Text style={styles.changeText} onPress={onChangePayment}>
+              <Text
+                style={styles.changeText}
+                onPress={() => (onChangePayment ? onChangePayment() : navigation?.navigate('PaymentMethodScreen'))}
+              >
                 Change
               </Text>
             }
@@ -102,6 +124,7 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
             subtitle={mockBookingReview.declaredValue}
             leading={<Text style={styles.itemIcon}>🏷️</Text>}
             trailing={<Text style={styles.chevron}>›</Text>}
+            onPress={() => navigation?.navigate('DeclaredValueSelectionScreen')}
           />
           <Divider />
           <ListRow
@@ -109,6 +132,7 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
             subtitle={mockBookingReview.insurance}
             leading={<Text style={styles.itemIcon}>🛡️</Text>}
             trailing={<Text style={styles.chevron}>›</Text>}
+            onPress={() => navigation?.navigate('GoodsInsuranceScreen')}
           />
         </Card>
       </ScrollView>
@@ -116,8 +140,11 @@ const ReviewBookingScreen: React.FC<ReviewBookingScreenProps> = ({
       {/* Confirm CTA */}
       <View style={styles.footer}>
         <Button
-          label={strings.booking.confirmBooking}
-          onPress={onConfirm ?? (() => {})}
+          label="Confirm Booking"
+          onPress={() => {
+            onConfirm?.();
+            navigation?.navigate('BookingConfirmedScreen');
+          }}
           variant="primary"
           size="lg"
           fullWidth

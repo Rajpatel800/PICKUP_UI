@@ -14,8 +14,9 @@ export interface PaymentProcessingScreenProps {
   readonly amount?: string;
 }
 
-const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = ({
+const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps & { navigation?: any }> = ({
   amount = '₹ 340.00', // Use mock default
+  navigation,
 }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -64,6 +65,14 @@ const PaymentProcessingScreen: React.FC<PaymentProcessingScreenProps> = ({
     inputRange: [0, 1],
     outputRange: [0.5, 0],
   });
+
+  // Auto-navigate to PaymentPendingScreen after 3.0s for prototype
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('PaymentPendingScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

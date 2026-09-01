@@ -12,8 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import BottomNavBar from '../../components/BottomNavBar';
+import { navigateToTab } from '../../navigation/tabRoutes';
 
-const LiveTrackingExceptionsScreen: React.FC = () => {
+const LiveTrackingExceptionsScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const pulseValue = useRef(new Animated.Value(1)).current;
   const slideValue = useRef(new Animated.Value(0)).current;
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -66,18 +67,34 @@ const LiveTrackingExceptionsScreen: React.FC = () => {
     outputRange: ['0deg', '360deg'],
   });
 
+  // Auto-navigate to MapLoadingScreen after 3.0s for prototype
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('MapLoadingScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
   return (
     <View style={styles.container}>
       {/* Top App Bar */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Pressable style={styles.iconButton}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => navigation?.goBack()}
+              accessibilityRole="button"
+            >
               <Feather name="arrow-left" size={24} color={colors.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>Precision Mobility</Text>
+            <Text style={styles.headerTitle}>Pick Up</Text>
           </View>
-          <Pressable style={styles.iconButton}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => navigation?.navigate('ActiveTripChatScreen')}
+            accessibilityRole="button"
+          >
             <Feather name="help-circle" size={24} color={colors.primary} />
           </Pressable>
         </View>
@@ -158,14 +175,18 @@ const LiveTrackingExceptionsScreen: React.FC = () => {
               <Text style={styles.largeTitle}>Live Tracking Unavailable</Text>
               <Text style={styles.largeSubtitle}>We've temporarily lost connection with the vehicle. The driver is still en route to your destination.</Text>
             </View>
-            <Pressable style={styles.primaryButton}>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => navigation?.navigate('CallDriverScreen')}
+              accessibilityRole="button"
+            >
               <Text style={styles.primaryButtonText}>Call Driver</Text>
             </Pressable>
           </View>
         </ScrollView>
       </View>
 
-      <BottomNavBar currentTab="trips" />
+      <BottomNavBar currentTab="trips" onTabPress={(tabId) => navigateToTab(navigation, tabId)} />
     </View>
   );
 };

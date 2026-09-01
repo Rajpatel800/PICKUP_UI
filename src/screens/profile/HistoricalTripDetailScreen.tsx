@@ -10,7 +10,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { mockActiveTrip } from '../../data/mockData';
-import BottomNavBar from '../../components/BottomNavBar';
 
 export interface HistoricalTripDetailScreenProps {
   readonly onBack?: () => void;
@@ -18,19 +17,15 @@ export interface HistoricalTripDetailScreenProps {
   readonly onDownloadInvoice?: () => void;
   readonly onNeedHelp?: () => void;
   readonly onRateTrip?: () => void;
-  // bottom nav props
-  readonly currentTab?: string;
-  readonly onTabPress?: (tabId: string) => void;
 }
 
-const HistoricalTripDetailScreen: React.FC<HistoricalTripDetailScreenProps> = ({
+const HistoricalTripDetailScreen: React.FC<HistoricalTripDetailScreenProps & { navigation?: any }> = ({
   onBack,
   onMore,
   onDownloadInvoice,
   onNeedHelp,
   onRateTrip,
-  currentTab = 'history',
-  onTabPress = () => {},
+  navigation,
 }) => {
   const stops = mockActiveTrip.stops;
 
@@ -38,11 +33,14 @@ const HistoricalTripDetailScreen: React.FC<HistoricalTripDetailScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>Trip Details</Text>
-        <Pressable style={styles.iconButton} onPress={onMore}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onMore ? onMore() : navigation?.navigate('ShareTrackingSheetScreen'))}
+        >
           <Feather name="more-vertical" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -152,7 +150,10 @@ const HistoricalTripDetailScreen: React.FC<HistoricalTripDetailScreenProps> = ({
                 <Text style={styles.driverVehicle}>{mockActiveTrip.driverRating}</Text>
               </View>
             </View>
-            <Pressable style={styles.rateButton} onPress={onRateTrip}>
+            <Pressable
+              style={styles.rateButton}
+              onPress={() => (onRateTrip ? onRateTrip() : navigation?.navigate('DriverRatingScreen'))}
+            >
               <Text style={styles.rateButtonText}>Rate Trip</Text>
             </Pressable>
           </View>
@@ -160,18 +161,24 @@ const HistoricalTripDetailScreen: React.FC<HistoricalTripDetailScreenProps> = ({
 
         {/* Actions */}
         <View style={styles.actionContainer}>
-          <Pressable style={styles.primaryActionButton} onPress={onDownloadInvoice}>
+          <Pressable
+            style={styles.primaryActionButton}
+            onPress={() =>
+              onDownloadInvoice ? onDownloadInvoice() : navigation?.navigate('DigitalReceiptScreen')
+            }
+          >
             <Feather name="download" size={20} color={colors.onPrimary} />
             <Text style={styles.primaryActionText}>Download Invoice</Text>
           </Pressable>
-          <Pressable style={styles.secondaryActionButton} onPress={onNeedHelp}>
+          <Pressable
+            style={styles.secondaryActionButton}
+            onPress={() => (onNeedHelp ? onNeedHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+          >
             <Feather name="help-circle" size={20} color={colors.onSurface} />
             <Text style={styles.secondaryActionText}>Need Help?</Text>
           </Pressable>
         </View>
       </ScrollView>
-
-      {/* <BottomNavBar currentTab={currentTab} onTabPress={onTabPress} /> */}
     </SafeAreaView>
   );
 };

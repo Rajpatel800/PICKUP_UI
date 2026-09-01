@@ -21,6 +21,5 @@ export type RootStackParamList = {
 export type TabParamList = {
   HomeTab: undefined;
   TripsTab: undefined;
-  WalletTab: undefined;
   AccountTab: undefined;
 };

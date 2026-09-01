@@ -9,48 +9,46 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import BottomNavBar from '../../components/BottomNavBar';
 
 export interface CustomerSettingsScreenProps {
   readonly onBack?: () => void;
-  readonly onProfile?: () => void;
-  readonly onSavedAddresses?: () => void;
-  readonly onNotifications?: () => void;
-  readonly onBookingHistory?: () => void;
-  readonly onLanguage?: () => void;
-  readonly onAccount?: () => void;
   readonly onLogout?: () => void;
-  // bottom nav props
-  readonly currentTab?: string;
-  readonly onTabPress?: (tabId: string) => void;
 }
 
-const SETTINGS_ITEMS = [
-  { id: 'profile', title: 'Profile', icon: 'user', actionKey: 'onProfile' },
-  { id: 'addresses', title: 'Saved Addresses', icon: 'map-pin', actionKey: 'onSavedAddresses' },
-  { id: 'notifications', title: 'Notifications', icon: 'bell', actionKey: 'onNotifications' },
-  { id: 'history', title: 'Booking History', icon: 'clock', actionKey: 'onBookingHistory' },
-  { id: 'language', title: 'Language', icon: 'globe', actionKey: 'onLanguage', value: 'English' },
-  { id: 'account', title: 'Account', icon: 'settings', actionKey: 'onAccount' },
+interface SettingsItem {
+  readonly id: string;
+  readonly title: string;
+  readonly icon: string;
+  /** Destination route name, or undefined for informational rows. */
+  readonly route?: string;
+  readonly value?: string;
+}
+
+const SETTINGS_ITEMS: readonly SettingsItem[] = [
+  { id: 'profile', title: 'Profile', icon: 'user', route: 'EditProfileScreen' },
+  { id: 'addresses', title: 'Saved Addresses', icon: 'map-pin', route: 'SavedAddressesScreen' },
+  { id: 'notifications', title: 'Notifications', icon: 'bell', route: 'NotificationCenterScreen' },
+  { id: 'history', title: 'Booking History', icon: 'clock', route: 'TripHistoryScreen' },
+  { id: 'language', title: 'Language', icon: 'globe', value: 'English' },
+  { id: 'account', title: 'Account', icon: 'settings', route: 'ProfileScreen' },
 ];
 
-const CustomerSettingsScreen: React.FC<CustomerSettingsScreenProps> = (props) => {
-  const {
-    onBack,
-    onLogout,
-    currentTab = 'settings',
-    onTabPress = () => {},
-  } = props;
+const CustomerSettingsScreen: React.FC<CustomerSettingsScreenProps & { navigation?: any }> = ({
+  onBack,
+  onLogout,
+  navigation,
+}) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable style={styles.iconButton} onPress={() => (onBack ? onBack() : navigation?.goBack())}>
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.iconButton} /> {/* Spacer */}
+        {/* Spacer keeps the title centred */}
+        <View style={styles.iconButton} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -59,17 +57,13 @@ const CustomerSettingsScreen: React.FC<CustomerSettingsScreenProps> = (props) =>
           {SETTINGS_ITEMS.map((item, index) => {
             const isFirst = index === 0;
             const isLast = index === SETTINGS_ITEMS.length - 1;
-            
-            return (
-              <Pressable
-                key={item.id}
-                style={[
-                  styles.settingRow,
-                  isFirst && styles.settingRowFirst,
-                  isLast && styles.settingRowLast,
-                ]}
-                onPress={props[item.actionKey as keyof typeof props] as () => void}
-              >
+            const rowStyle = [
+              styles.settingRow,
+              isFirst && styles.settingRowFirst,
+              isLast && styles.settingRowLast,
+            ];
+            const rowContent = (
+              <>
                 <View style={styles.rowLeft}>
                   <Feather name={item.icon as any} size={24} color={colors.onSurfaceVariant} />
                   <Text style={styles.rowTitle}>{item.title}</Text>
@@ -81,6 +75,25 @@ const CustomerSettingsScreen: React.FC<CustomerSettingsScreenProps> = (props) =>
                   )}
                   <Feather name="chevron-right" size={24} color={colors.outlineVariant} />
                 </View>
+              </>
+            );
+
+            // Rows without a destination render as plain views, never as dead buttons.
+            if (!item.route) {
+              return (
+                <View key={item.id} style={rowStyle}>
+                  {rowContent}
+                </View>
+              );
+            }
+
+            return (
+              <Pressable
+                key={item.id}
+                style={rowStyle}
+                onPress={() => navigation?.navigate(item.route)}
+              >
+                {rowContent}
               </Pressable>
             );
           })}
@@ -88,15 +101,15 @@ const CustomerSettingsScreen: React.FC<CustomerSettingsScreenProps> = (props) =>
 
         {/* Destructive Action Section */}
         <View style={styles.logoutContainer}>
-          <Pressable style={styles.logoutButton} onPress={onLogout}>
+          <Pressable
+            style={styles.logoutButton}
+            onPress={() => (onLogout ? onLogout() : navigation?.navigate('LogoutConfirmationScreen'))}
+          >
             <MaterialIcons name="logout" size={24} color={colors.error} />
             <Text style={styles.logoutText}>Logout</Text>
           </Pressable>
         </View>
       </ScrollView>
-
-      {/* Since BottomNavBar is not yet implemented, commented out or use dummy */}
-      {/* <BottomNavBar currentTab={currentTab} onTabPress={onTabPress} /> */}
     </SafeAreaView>
   );
 };

@@ -16,8 +16,9 @@ export interface DriverFoundScreenProps {
   readonly onCancel?: () => void;
 }
 
-const DriverFoundScreen: React.FC<DriverFoundScreenProps> = ({
+const DriverFoundScreen: React.FC<DriverFoundScreenProps & { navigation?: any }> = ({
   onCancel,
+  navigation,
 }) => {
   const [pulseAnim] = useState(new Animated.Value(0));
   const [slideDownAnim] = useState(new Animated.Value(-100)); // for toast
@@ -76,6 +77,14 @@ const DriverFoundScreen: React.FC<DriverFoundScreenProps> = ({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
+
+  // Auto-navigate to DriverAssignedScreen after 3.0s for prototype
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('DriverAssignedScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -152,7 +161,7 @@ const DriverFoundScreen: React.FC<DriverFoundScreenProps> = ({
               {/* Cancel Button */}
               <Pressable
                 style={styles.cancelButton}
-                onPress={onCancel}
+                onPress={() => (onCancel ? onCancel() : navigation?.navigate('CancellationReasonScreen'))}
                 accessibilityRole="button"
               >
                 <Text style={styles.cancelButtonText}>Cancel Request</Text>

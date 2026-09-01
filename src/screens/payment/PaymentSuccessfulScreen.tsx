@@ -19,13 +19,14 @@ export interface PaymentSuccessfulScreenProps {
   readonly onHome?: () => void;
 }
 
-const PaymentSuccessfulScreen: React.FC<PaymentSuccessfulScreenProps> = ({
+const PaymentSuccessfulScreen: React.FC<PaymentSuccessfulScreenProps & { navigation?: any }> = ({
   amount = '₹ 340',
   transactionId = 'TXN-8472910',
   date = 'Oct 24, 2023',
-  paymentMethod = 'Wallet',
+  paymentMethod = 'UPI',
   onViewBooking,
   onHome,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -60,7 +61,7 @@ const PaymentSuccessfulScreen: React.FC<PaymentSuccessfulScreenProps> = ({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Payment Method</Text>
               <View style={styles.methodContainer}>
-                <MaterialIcons name="account-balance-wallet" size={16} color={colors.onSurface} />
+                <MaterialIcons name="payment" size={16} color={colors.onSurface} />
                 <Text style={styles.detailValue}>{paymentMethod}</Text>
               </View>
             </View>
@@ -69,12 +70,17 @@ const PaymentSuccessfulScreen: React.FC<PaymentSuccessfulScreenProps> = ({
           {/* Action Buttons */}
           <Button
             label="View Booking"
-            onPress={() => onViewBooking?.()}
+            onPress={() =>
+              onViewBooking ? onViewBooking() : navigation?.navigate('PaymentConfirmationScreen')
+            }
             variant="primary"
             fullWidth
             size="lg"
           />
-          <Pressable style={styles.homeButton} onPress={onHome}>
+          <Pressable
+            style={styles.homeButton}
+            onPress={() => (onHome ? onHome() : navigation?.navigate('HomeScreen'))}
+          >
             <Text style={styles.homeButtonText}>Back to Home</Text>
           </Pressable>
         </View>

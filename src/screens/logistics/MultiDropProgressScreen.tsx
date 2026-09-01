@@ -16,9 +16,10 @@ export interface MultiDropProgressScreenProps {
   readonly onMore?: () => void;
 }
 
-const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
+const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps & { navigation?: any }> = ({
   onBack,
   onMore,
+  navigation,
 }) => {
   const stops = mockActiveTrip.stops;
 
@@ -26,11 +27,19 @@ const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack} accessibilityRole="button">
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          accessibilityRole="button"
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Route</Text>
-        <Pressable style={styles.iconButton} onPress={onMore} accessibilityRole="button">
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onMore ? onMore() : navigation?.navigate('ShareTrackingSheetScreen'))}
+          accessibilityRole="button"
+        >
           <Feather name="more-vertical" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -59,8 +68,8 @@ const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
 
           {stops.map((stop, index) => {
             const isCompleted = stop.status === 'completed';
-            const isActive = stop.status === 'in-transit';
-            const isPending = stop.status === 'pending';
+            const isActive = stop.status === 'current';
+            const isPending = stop.status === 'upcoming';
             
             // Note: Since stops[0] is pickup, drops start from index 1.
             let stopLabel = 'Drop';
@@ -70,7 +79,12 @@ const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
 
             if (isActive) {
               return (
-                <View key={index} style={[styles.timelineRow, styles.timelineRowActive]}>
+                <Pressable
+                  key={index}
+                  style={[styles.timelineRow, styles.timelineRowActive]}
+                  onPress={() => navigation?.navigate('CurrentDropDetailsScreen')}
+                  accessibilityRole="button"
+                >
                   {/* Highlight line overlay for active state */}
                   <View style={styles.timelineLineActive} />
                   
@@ -93,26 +107,27 @@ const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
                       <Text style={styles.transitStatusText}>In Transit</Text>
                     </View>
                   </View>
-                </View>
+                </Pressable>
               );
             }
 
             return (
-              <View
+              <Pressable
                 key={index}
                 style={[
                   styles.timelineRow,
                   isCompleted && styles.timelineRowCompleted,
                 ]}
+                onPress={() => navigation?.navigate('CurrentDropDetailsScreen')}
+                accessibilityRole="button"
               >
                 <View style={styles.nodeColumn}>
-                  {isCompleted ? (
+                  {isCompleted && (
                     <View style={styles.completedNode}>
                       <Feather name="check" size={16} color={colors.onSurfaceVariant} />
                     </View>
-                  ) : (
-                    <View style={styles.pendingNode} />
                   )}
+                  {isPending && <View style={styles.pendingNode} />}
                 </View>
                 
                 <View style={[styles.contentColumn, index < stops.length - 1 && styles.contentDivider]}>
@@ -127,7 +142,7 @@ const MultiDropProgressScreen: React.FC<MultiDropProgressScreenProps> = ({
                     {isCompleted ? 'Completed at 10:15 AM' : 'Pending'}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>

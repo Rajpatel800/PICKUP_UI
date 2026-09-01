@@ -82,7 +82,7 @@ const sectionStyles = StyleSheet.create({
   },
 });
 
-const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
+const BookingReviewScreen: React.FC<BookingReviewScreenProps & { navigation?: any }> = ({
   onBack,
   onConfirm,
   onEditPickup,
@@ -91,6 +91,7 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
   onEditGoods,
   onEditInsurance,
   onEditPayment,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -98,7 +99,7 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -115,12 +116,20 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
         showsVerticalScrollIndicator={false}
       >
         {/* Pickup */}
-        <ReviewSection icon="circle" label="Pickup" onEdit={onEditPickup}>
+        <ReviewSection
+          icon="circle"
+          label="Pickup"
+          onEdit={() => (onEditPickup ? onEditPickup() : navigation?.navigate('SelectLocationScreen'))}
+        >
           <Text style={styles.sectionValue}>Sardarpura Warehouse</Text>
         </ReviewSection>
 
         {/* Drops */}
-        <ReviewSection icon="map-pin" label="Drops" onEdit={onEditDrops}>
+        <ReviewSection
+          icon="map-pin"
+          label="Drops"
+          onEdit={() => (onEditDrops ? onEditDrops() : navigation?.navigate('MultiDropOverviewScreen'))}
+        >
           <View style={styles.dropsContainer}>
             <View style={styles.dropsLine} />
             {['Ratanada Hub', 'Pal Road', 'Basni Phase II'].map((drop, index) => (
@@ -133,12 +142,20 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
         </ReviewSection>
 
         {/* Vehicle */}
-        <ReviewSection icon="truck" label="Vehicle" onEdit={onEditVehicle}>
+        <ReviewSection
+          icon="truck"
+          label="Vehicle"
+          onEdit={() => (onEditVehicle ? onEditVehicle() : navigation?.navigate('SelectVehicleScreen'))}
+        >
           <Text style={styles.sectionValue}>{mockBookingReview.vehicleType}</Text>
         </ReviewSection>
 
         {/* Goods */}
-        <ReviewSection icon="package" label="Goods" onEdit={onEditGoods}>
+        <ReviewSection
+          icon="package"
+          label="Goods"
+          onEdit={() => (onEditGoods ? onEditGoods() : navigation?.navigate('GoodsDetailsScreen'))}
+        >
           <Text style={styles.sectionValue}>3 boxes of kitchenware</Text>
           <View style={styles.chipRow}>
             <View style={styles.chip}>
@@ -152,11 +169,19 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
 
         {/* Insurance & Payment - Two Column */}
         <View style={styles.twoColRow}>
-          <ReviewSection icon="shield" label="Insurance" onEdit={onEditInsurance}>
+          <ReviewSection
+            icon="shield"
+            label="Insurance"
+            onEdit={() => (onEditInsurance ? onEditInsurance() : navigation?.navigate('GoodsInsuranceScreen'))}
+          >
             <Text style={styles.primaryValue}>Selected</Text>
           </ReviewSection>
 
-          <ReviewSection icon="credit-card" label="Payment" onEdit={onEditPayment}>
+          <ReviewSection
+            icon="credit-card"
+            label="Payment"
+            onEdit={() => (onEditPayment ? onEditPayment() : navigation?.navigate('PaymentMethodScreen'))}
+          >
             <Text style={styles.sectionValue}>Pay via UPI</Text>
           </ReviewSection>
         </View>
@@ -178,7 +203,10 @@ const BookingReviewScreen: React.FC<BookingReviewScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.confirmButton}
-          onPress={onConfirm}
+          onPress={() => {
+            onConfirm?.();
+            navigation?.navigate('ValidateBookingScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Confirm Booking"
         >

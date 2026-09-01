@@ -1,13 +1,22 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius, typography } from '../../theme';
 import { strings, mockUser } from '../../data/mockData';
 import TopAppBar from '../../components/organisms/TopAppBar';
 import Card from '../../components/molecules/Card';
 import ListRow from '../../components/molecules/ListRow';
 import Divider from '../../components/atoms/Divider';
-import Button from '../../components/atoms/Button';
+
+/** Menu rows share one icon treatment so nothing renders in OS emoji colours. */
+const MenuIcon: React.FC<{ readonly name: keyof typeof Feather.glyphMap }> = ({ name }) => (
+  <Feather name={name} size={20} color={colors.onSurfaceVariant} />
+);
+
+const Chevron = () => (
+  <Feather name="chevron-right" size={20} color={colors.outlineVariant} />
+);
 
 export interface ProfileScreenProps {
   readonly onBack?: () => void;
@@ -20,7 +29,7 @@ export interface ProfileScreenProps {
   readonly onNotificationPress?: () => void;
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({
+const ProfileScreen: React.FC<ProfileScreenProps & { navigation?: any }> = ({
   onBack,
   onEditProfile,
   onSavedAddresses,
@@ -29,6 +38,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSettings,
   onLogout,
   onNotificationPress,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -36,11 +46,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         title={strings.profile.title}
         leadingIcon={
           <View style={styles.avatarSmall}>
-            <Text style={styles.avatarSmallText}>👤</Text>
+            <Feather name="user" size={16} color={colors.primary} />
           </View>
         }
-        trailingIcon={<Text style={styles.bellIcon}>🔔</Text>}
-        onTrailingPress={onNotificationPress}
+        trailingIcon={<Feather name="bell" size={22} color={colors.primary} />}
+        onLeadingPress={() => navigation?.navigate('CustomerSettingsScreen')}
+        onTrailingPress={() =>
+          onNotificationPress ? onNotificationPress() : navigation?.navigate('NotificationCenterScreen')
+        }
       />
 
       <ScrollView
@@ -51,16 +64,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLargeText}>👤</Text>
+            <Feather name="user" size={40} color={colors.onSurfaceVariant} />
           </View>
           <Text style={styles.userName}>{mockUser.fullName}</Text>
           <View style={styles.phoneRow}>
-            <Text style={styles.phoneIcon}>📞</Text>
+            <Feather name="phone" size={14} color={colors.onSurfaceVariant} />
             <Text style={styles.phoneText}>{mockUser.phone}</Text>
           </View>
           <Pressable
             style={styles.editButton}
-            onPress={onEditProfile}
+            onPress={() => (onEditProfile ? onEditProfile() : navigation?.navigate('EditProfileScreen'))}
             accessibilityRole="button"
             accessibilityLabel="Edit Profile"
           >
@@ -74,41 +87,43 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <Card variant="outlined" padding="none">
           <ListRow
             title={strings.profile.savedAddresses}
-            leading={<Text style={styles.menuIcon}>📍</Text>}
-            trailing={<Text style={styles.chevron}>›</Text>}
-            onPress={onSavedAddresses}
+            leading={<MenuIcon name="map-pin" />}
+            trailing={<Chevron />}
+            onPress={() => (onSavedAddresses ? onSavedAddresses() : navigation?.navigate('SavedAddressesScreen'))}
           />
           <Divider />
           <ListRow
             title="Booking History"
-            leading={<Text style={styles.menuIcon}>🕐</Text>}
-            trailing={<Text style={styles.chevron}>›</Text>}
-            onPress={onBookingHistory}
+            leading={<MenuIcon name="clock" />}
+            trailing={<Chevron />}
+            onPress={() => (onBookingHistory ? onBookingHistory() : navigation?.navigate('TripHistoryScreen'))}
           />
           <Divider />
           <ListRow
             title={strings.profile.notifications}
-            leading={<Text style={styles.menuIcon}>🔔</Text>}
-            trailing={<Text style={styles.chevron}>›</Text>}
-            onPress={onNotifications}
+            leading={<MenuIcon name="bell" />}
+            trailing={<Chevron />}
+            onPress={() =>
+              onNotifications ? onNotifications() : navigation?.navigate('NotificationCenterScreen')
+            }
           />
           <Divider />
           <ListRow
             title="Settings"
-            leading={<Text style={styles.menuIcon}>⚙️</Text>}
-            trailing={<Text style={styles.chevron}>›</Text>}
-            onPress={onSettings}
+            leading={<MenuIcon name="settings" />}
+            trailing={<Chevron />}
+            onPress={() => (onSettings ? onSettings() : navigation?.navigate('CustomerSettingsScreen'))}
           />
         </Card>
 
         {/* Logout Button */}
         <Pressable
           style={styles.logoutButton}
-          onPress={onLogout}
+          onPress={() => (onLogout ? onLogout() : navigation?.navigate('LogoutConfirmationScreen'))}
           accessibilityRole="button"
           accessibilityLabel="Logout"
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <MaterialIcons name="logout" size={20} color={colors.error} />
           <Text style={styles.logoutText}>{strings.profile.logout}</Text>
         </Pressable>
       </ScrollView>
@@ -129,8 +144,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarSmallText: { fontSize: 16 },
-  bellIcon: { fontSize: 22 },
   scrollView: {
     flex: 1,
   },
@@ -155,7 +168,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  avatarLargeText: { fontSize: 40 },
   userName: {
     fontSize: typography.headlineMd.fontSize,
     lineHeight: typography.headlineMd.lineHeight,
@@ -168,7 +180,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  phoneIcon: { fontSize: 14 },
   phoneText: {
     fontSize: typography.bodyMd.fontSize,
     color: colors.onSurfaceVariant,
@@ -189,13 +200,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMd.fontFamily,
   },
 
-  // Menu
-  menuIcon: { fontSize: 20 },
-  chevron: {
-    fontSize: 20,
-    color: colors.onSurfaceVariant,
-  },
-
   // Logout
   logoutButton: {
     flexDirection: 'row',
@@ -203,11 +207,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.errorContainer,
-    borderRadius: borderRadius.lg,
+    // Pill, matching every other primary action in the app.
+    borderRadius: borderRadius.full,
     paddingVertical: spacing.lg,
-    opacity: 0.8,
   },
-  logoutIcon: { fontSize: 18 },
   logoutText: {
     fontSize: typography.bodyLg.fontSize,
     fontWeight: '600',

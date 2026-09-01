@@ -11,10 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
 import BottomNavBar from '../../components/BottomNavBar';
+import { navigateToTab } from '../../navigation/tabRoutes';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const MapLoadingScreen: React.FC = () => {
+const MapLoadingScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const pulseOpacity = useRef(new Animated.Value(0.4)).current;
   const progressValue = useRef(new Animated.Value(0)).current;
 
@@ -53,6 +54,14 @@ const MapLoadingScreen: React.FC = () => {
     outputRange: ['-100%', '100%'],
   });
 
+  // Auto-navigate to ReconnectingScreen after 3.0s for prototype
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation?.navigate('ReconnectingScreen');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
   return (
     <View style={styles.container}>
       {/* Top App Bar */}
@@ -62,7 +71,7 @@ const MapLoadingScreen: React.FC = () => {
             <View style={styles.profileIconBox}>
               <Feather name="user" size={16} color={colors.onSurfaceVariant} />
             </View>
-            <Text style={styles.headerTitle}>LogisticsPro</Text>
+            <Text style={styles.headerTitle}>Pick Up</Text>
           </View>
           <View style={styles.iconButton}>
             <Feather name="bell" size={20} color={colors.onSurfaceVariant} />
@@ -103,7 +112,7 @@ const MapLoadingScreen: React.FC = () => {
       </View>
 
       {/* Bottom Nav */}
-      <BottomNavBar currentTab="home" />
+      <BottomNavBar currentTab="home" onTabPress={(tabId) => navigateToTab(navigation, tabId)} />
     </View>
   );
 };

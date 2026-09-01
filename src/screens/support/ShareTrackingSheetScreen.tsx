@@ -18,11 +18,12 @@ export interface ShareTrackingSheetScreenProps {
   readonly onShare?: () => void;
 }
 
-const ShareTrackingSheetScreen: React.FC<ShareTrackingSheetScreenProps> = ({
+const ShareTrackingSheetScreen: React.FC<ShareTrackingSheetScreenProps & { navigation?: any }> = ({
   onBack,
   onClose,
   onCopyLink,
   onShare,
+  navigation,
 }) => {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -36,7 +37,10 @@ const ShareTrackingSheetScreen: React.FC<ShareTrackingSheetScreenProps> = ({
   const handleShare = () => {
     setSharing(true);
     onShare?.();
-    setTimeout(() => setSharing(false), 1500);
+    setTimeout(() => {
+      setSharing(false);
+      navigation?.goBack();
+    }, 1500);
   };
 
   return (
@@ -50,7 +54,10 @@ const ShareTrackingSheetScreen: React.FC<ShareTrackingSheetScreenProps> = ({
       {/* Top App Bar */}
       <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <Pressable style={styles.iconButton} onPress={onBack}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          >
             <Feather name="arrow-left" size={24} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Current Trip</Text>
@@ -72,7 +79,10 @@ const ShareTrackingSheetScreen: React.FC<ShareTrackingSheetScreenProps> = ({
           {/* Sheet Header */}
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Share Tracking</Text>
-            <Pressable style={styles.closeButton} onPress={onClose}>
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => (onClose ? onClose() : navigation?.goBack())}
+            >
               <Feather name="x" size={24} color={colors.onSurfaceVariant} />
             </Pressable>
           </View>

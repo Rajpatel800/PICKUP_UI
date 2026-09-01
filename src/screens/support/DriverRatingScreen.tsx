@@ -33,10 +33,11 @@ const RATING_DESCRIPTIONS: Record<number, string> = {
   5: 'Excellent',
 };
 
-const DriverRatingScreen: React.FC<DriverRatingScreenProps> = ({
+const DriverRatingScreen: React.FC<DriverRatingScreenProps & { navigation?: any }> = ({
   onClose,
   onSubmit,
   onSkip,
+  navigation,
 }) => {
   const [rating, setRating] = useState(0);
   const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
@@ -56,6 +57,7 @@ const DriverRatingScreen: React.FC<DriverRatingScreenProps> = ({
     setTimeout(() => {
       onSubmit?.(rating, selectedFeedback);
       setIsSubmitting(false);
+      navigation?.navigate('WrittenReviewScreen');
     }, 1000);
   };
 
@@ -64,12 +66,18 @@ const DriverRatingScreen: React.FC<DriverRatingScreenProps> = ({
       {/* Top App Bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable style={styles.iconButton} onPress={onClose}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => (onClose ? onClose() : navigation?.goBack())}
+          >
             <Feather name="x" size={24} color={colors.onSurfaceVariant} />
           </Pressable>
-          <Text style={styles.headerTitle}>SwiftLogistics</Text>
+          <Text style={styles.headerTitle}>Pick Up</Text>
         </View>
-        <Pressable style={styles.iconButton}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => navigation?.navigate('NotificationCenterScreen')}
+        >
           <Feather name="bell" size={24} color={colors.onSurfaceVariant} />
         </Pressable>
       </View>
@@ -155,7 +163,12 @@ const DriverRatingScreen: React.FC<DriverRatingScreenProps> = ({
               <Text style={styles.submitButtonText}>SUBMIT RATING</Text>
             )}
           </Pressable>
-          <Pressable style={styles.skipButton} onPress={onSkip}>
+          <Pressable
+            style={styles.skipButton}
+            onPress={() =>
+              onSkip ? onSkip() : navigation?.navigate('TripCompletedSummaryScreen')
+            }
+          >
             <Text style={styles.skipButtonText}>Skip</Text>
           </Pressable>
         </View>

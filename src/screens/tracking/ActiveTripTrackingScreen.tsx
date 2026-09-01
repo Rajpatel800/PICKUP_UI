@@ -5,9 +5,9 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  ImageBackground,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MapCanvas from '../../components/map/MapCanvas';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
 
@@ -19,27 +19,22 @@ export interface ActiveTripTrackingScreenProps {
   readonly onShare?: () => void;
 }
 
-const ActiveTripTrackingScreen: React.FC<ActiveTripTrackingScreenProps> = ({
+const ActiveTripTrackingScreen: React.FC<ActiveTripTrackingScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   onCall,
   onChat,
   onShare,
+  navigation,
 }) => {
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={styles.container}>
-      {/* Map Canvas */}
-      <ImageBackground
-        source={{
-          uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChdxfy0i22oHT8cnQNEvUuujhJZgxsHr5SqO4NfA4BaUzs_K-7cNBSTJw8qozMfoxfsjYawKtmqa5NOUaXX8YuRiTHR8hSfouRuOlIntpxBuNJb6sMpyyHy9TD0F2yt31f9JyIW1jljmPYdNxxg8y_2S9raMMVR5LZYEsvXZzC3VxIHd6IufPpbX1-WzWbvM8d8X187lSxBxRcqeutnIn4ejUUsd9NO1hTk7SkjM8TDj4N9qoHyApA',
-        }}
-        style={styles.mapCanvas}
-        imageStyle={{ opacity: 0.8 }}
-      >
-        {/* Simulated Route Line SVG (Using basic views for native) */}
-        {/* Skipping complex SVG lines for simulated map, focusing on UI overlay */}
+      {/* Real map behind the sheet. Static — the moving driver is shown on
+          CustomerLiveTrackingScreen. This screen focuses on the multi-drop
+          timeline in the sheet, so no live driver polling here. */}
+      <MapCanvas style={styles.mapCanvas as any} scrollEnabled={false}>
+        {/* Empty children just so JSX shape stays consistent. */}
+        <View />
 
         {/* Top App Bar */}
         <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
@@ -47,7 +42,7 @@ const ActiveTripTrackingScreen: React.FC<ActiveTripTrackingScreenProps> = ({
             <View style={styles.headerLeft}>
               <Pressable
                 style={styles.iconButton}
-                onPress={onBack}
+                onPress={() => (onBack ? onBack() : navigation?.goBack())}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
               >
@@ -57,7 +52,7 @@ const ActiveTripTrackingScreen: React.FC<ActiveTripTrackingScreenProps> = ({
             </View>
             <Pressable
               style={styles.iconButton}
-              onPress={onHelp}
+              onPress={() => (onHelp ? onHelp() : navigation?.navigate('LiveTrackingExceptionsScreen'))}
               accessibilityRole="button"
               accessibilityLabel="Help"
             >
@@ -152,21 +147,33 @@ const ActiveTripTrackingScreen: React.FC<ActiveTripTrackingScreenProps> = ({
 
             {/* Action Bar */}
             <View style={styles.actionBar}>
-              <Pressable style={styles.actionButton} onPress={onCall}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => (onCall ? onCall() : navigation?.navigate('CallDriverScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="phone" size={20} color={colors.onSecondaryContainer} />
                 <Text style={styles.actionButtonText}>Call</Text>
               </Pressable>
-              <Pressable style={styles.actionButton} onPress={onChat}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => (onChat ? onChat() : navigation?.navigate('ActiveTripChatScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="message-circle" size={20} color={colors.onSecondaryContainer} />
                 <Text style={styles.actionButtonText}>Chat</Text>
               </Pressable>
-              <Pressable style={styles.iconAction} onPress={onShare}>
+              <Pressable
+                style={styles.iconAction}
+                onPress={() => (onShare ? onShare() : navigation?.navigate('ShareTrackingSheetScreen'))}
+                accessibilityRole="button"
+              >
                 <Feather name="share-2" size={20} color={colors.onSurfaceVariant} />
               </Pressable>
             </View>
           </View>
         </SafeAreaView>
-      </ImageBackground>
+      </MapCanvas>
     </View>
   );
 };

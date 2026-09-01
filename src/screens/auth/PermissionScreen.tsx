@@ -29,10 +29,11 @@ const subtitleMap = {
   camera: 'Take photos for delivery verification and proof of pickup.',
 } as const;
 
-const PermissionScreen: React.FC<PermissionScreenProps> = ({
+const PermissionScreen: React.FC<PermissionScreenProps & { navigation?: any }> = ({
   variant,
   onAllow,
   onNotNow,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,14 +50,20 @@ const PermissionScreen: React.FC<PermissionScreenProps> = ({
       <View style={styles.footer}>
         <Button
           label={strings.permissions.allow}
-          onPress={onAllow ?? (() => {})}
+          onPress={() => {
+            onAllow?.();
+            navigation?.navigate('RecordingConsentScreen');
+          }}
           variant="primary"
           size="lg"
           fullWidth
         />
         <Button
           label={strings.permissions.notNow}
-          onPress={onNotNow ?? (() => {})}
+          onPress={() => {
+            onNotNow?.();
+            navigation?.navigate('RecordingConsentScreen');
+          }}
           variant="ghost"
           size="lg"
           fullWidth

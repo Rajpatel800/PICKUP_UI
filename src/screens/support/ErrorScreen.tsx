@@ -29,10 +29,11 @@ const subtitleMap = {
   connectionLost: 'Attempting to reconnect...',
 } as const;
 
-const ErrorScreen: React.FC<ErrorScreenProps> = ({
+const ErrorScreen: React.FC<ErrorScreenProps & { navigation?: any }> = ({
   variant,
   onRetry,
   onGoBack,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -47,20 +48,18 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
       <View style={styles.footer}>
         <Button
           label={strings.errors.retry}
-          onPress={onRetry ?? (() => {})}
+          onPress={() => (onRetry ? onRetry() : navigation?.goBack())}
           variant="primary"
           size="lg"
           fullWidth
         />
-        {onGoBack && (
-          <Button
-            label={strings.errors.goBack}
-            onPress={onGoBack}
-            variant="ghost"
-            size="lg"
-            fullWidth
-          />
-        )}
+        <Button
+          label={strings.errors.goBack}
+          onPress={() => (onGoBack ? onGoBack() : navigation?.goBack())}
+          variant="ghost"
+          size="lg"
+          fullWidth
+        />
       </View>
     </SafeAreaView>
   );

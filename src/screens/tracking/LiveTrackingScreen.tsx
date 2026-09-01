@@ -4,9 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { mockActiveTrip } from '../../data/mockData';
 import TopAppBar from '../../components/organisms/TopAppBar';
-import Card from '../../components/molecules/Card';
 import StatusBadge from '../../components/atoms/StatusBadge';
-import Button from '../../components/atoms/Button';
 
 export interface LiveTrackingScreenProps {
   readonly onBack?: () => void;
@@ -15,11 +13,12 @@ export interface LiveTrackingScreenProps {
   readonly onShare?: () => void;
 }
 
-const LiveTrackingScreen: React.FC<LiveTrackingScreenProps> = ({
+const LiveTrackingScreen: React.FC<LiveTrackingScreenProps & { navigation?: any }> = ({
   onBack,
   onCallDriver,
   onChat,
   onShare,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -27,7 +26,7 @@ const LiveTrackingScreen: React.FC<LiveTrackingScreenProps> = ({
       <TopAppBar
         title="Live Tracking"
         leadingIcon={<Text style={styles.backIcon}>←</Text>}
-        onLeadingPress={onBack}
+        onLeadingPress={() => (onBack ? onBack() : navigation?.goBack())}
         trailingIcon={
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
@@ -112,7 +111,7 @@ const LiveTrackingScreen: React.FC<LiveTrackingScreenProps> = ({
         <View style={styles.actionRow}>
           <Pressable
             style={styles.actionButton}
-            onPress={onCallDriver}
+            onPress={() => (onCallDriver ? onCallDriver() : navigation?.navigate('CallDriverScreen'))}
             accessibilityRole="button"
             accessibilityLabel="Call driver"
           >
@@ -121,7 +120,7 @@ const LiveTrackingScreen: React.FC<LiveTrackingScreenProps> = ({
           </Pressable>
           <Pressable
             style={styles.actionButton}
-            onPress={onChat}
+            onPress={() => (onChat ? onChat() : navigation?.navigate('ActiveTripChatScreen'))}
             accessibilityRole="button"
             accessibilityLabel="Chat with driver"
           >
@@ -130,7 +129,7 @@ const LiveTrackingScreen: React.FC<LiveTrackingScreenProps> = ({
           </Pressable>
           <Pressable
             style={styles.actionButtonCircle}
-            onPress={onShare}
+            onPress={() => (onShare ? onShare() : navigation?.navigate('ShareTrackingSheetScreen'))}
             accessibilityRole="button"
             accessibilityLabel="Share tracking"
           >

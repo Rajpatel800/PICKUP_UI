@@ -24,23 +24,41 @@ const PAYMENT_METHODS = [
   { id: 'upi', label: 'Pay via UPI', icon: 'account-balance' as const },
 ];
 
-const PaymentMethodScreen: React.FC<PaymentMethodScreenProps> = ({
+const PaymentMethodScreen: React.FC<PaymentMethodScreenProps & { navigation?: any }> = ({
   amount = '₹ 450.00',
   onContinue,
   onBack,
   onHelp,
+  navigation,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<string>('upi');
+
+  const CASH_METHOD_IDS = ['cod', 'pickup'];
+
+  const handleContinue = () => {
+    onContinue?.(selectedMethod);
+    navigation?.navigate(
+      CASH_METHOD_IDS.includes(selectedMethod)
+        ? 'CashPaymentStatusScreen'
+        : 'PaymentMethodSelectedScreen'
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Delivery</Text>
-        <Pressable style={styles.helpButton} onPress={onHelp}>
+        <Pressable
+          style={styles.helpButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Text style={styles.helpButtonText}>Help</Text>
         </Pressable>
       </View>
@@ -104,7 +122,7 @@ const PaymentMethodScreen: React.FC<PaymentMethodScreenProps> = ({
       <View style={styles.bottomActions}>
         <Button
           label="CONTINUE"
-          onPress={() => onContinue?.(selectedMethod)}
+          onPress={handleContinue}
           variant="primary"
           fullWidth
           size="lg"

@@ -10,15 +10,17 @@ import { colors, spacing, borderRadius, typography, shadows } from '../../theme'
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import BottomNavBar from '../../components/BottomNavBar';
 import Button from '../../components/atoms/Button';
+import { navigateToTab } from '../../navigation/tabRoutes';
 
 export interface RouteUnavailableScreenProps {
   readonly onRetry?: () => void;
   readonly onChangeLocation?: () => void;
 }
 
-const RouteUnavailableScreen: React.FC<RouteUnavailableScreenProps> = ({
+const RouteUnavailableScreen: React.FC<RouteUnavailableScreenProps & { navigation?: any }> = ({
   onRetry,
   onChangeLocation,
+  navigation,
 }) => {
   return (
     <View style={styles.container}>
@@ -29,9 +31,12 @@ const RouteUnavailableScreen: React.FC<RouteUnavailableScreenProps> = ({
             <View style={styles.profileIconBox}>
               <Feather name="user" size={16} color={colors.onSurfaceVariant} />
             </View>
-            <Text style={styles.headerTitle}>LogisticsPro</Text>
+            <Text style={styles.headerTitle}>Pick Up</Text>
           </View>
-          <Pressable style={styles.iconButton}>
+          <Pressable
+            style={styles.iconButton}
+            onPress={() => navigation?.navigate('NotificationCenterScreen')}
+          >
             <Feather name="bell" size={20} color={colors.onSurfaceVariant} />
           </Pressable>
         </View>
@@ -59,11 +64,20 @@ const RouteUnavailableScreen: React.FC<RouteUnavailableScreenProps> = ({
             <View style={styles.actionsContainer}>
               <Button
                 label="Retry"
-                onPress={() => onRetry?.()}
+                onPress={() =>
+                  onRetry ? onRetry() : navigation?.navigate('MultiDropProgressScreen')
+                }
                 variant="primary"
                 fullWidth
               />
-              <Pressable style={styles.secondaryButton} onPress={onChangeLocation}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() =>
+                  onChangeLocation
+                    ? onChangeLocation()
+                    : navigation?.navigate('SelectDropLocationScreen')
+                }
+              >
                 <Text style={styles.secondaryButtonText}>Change location</Text>
               </Pressable>
             </View>
@@ -71,7 +85,10 @@ const RouteUnavailableScreen: React.FC<RouteUnavailableScreenProps> = ({
         </View>
       </View>
 
-      <BottomNavBar currentTab="trips" />
+      <BottomNavBar
+        currentTab="trips"
+        onTabPress={(tabId) => navigateToTab(navigation, tabId)}
+      />
     </View>
   );
 };

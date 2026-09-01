@@ -1,19 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  TextInput,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import Button from '../../components/atoms/Button';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
+import { useBooking } from '../../state/BookingContext';
+import { useTripStatus } from '../../hooks/useTripStatus';
 
 export interface PickupOTPVerificationScreenProps {
   readonly pickupLocation?: string;
@@ -26,46 +23,62 @@ export interface PickupOTPVerificationScreenProps {
   readonly isError?: boolean;
 }
 
-const PickupOTPVerificationScreen: React.FC<PickupOTPVerificationScreenProps> = ({
+const PickupOTPVerificationScreen: React.FC<PickupOTPVerificationScreenProps & { navigation?: any }> = ({
   pickupLocation = 'Sardarpura Warehouse',
   driverName = 'Ramesh Kumar',
   vehicleInfo = 'Tata Ace • RJ 19 XX 1234',
   onVerify,
   onResend,
   onBack,
+  navigation,
   isLoading = false,
   isError = false,
 }) => {
-  const [otp, setOtp] = useState(['', '', '', '']);
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+  const { trip, setTrip } = useBooking();
 
-  const handleOtpChange = (text: string, index: number) => {
-    const newOtp = [...otp];
-    newOtp[index] = text;
-    setOtp(newOtp);
+  // Poll the trip so the screen advances the moment the driver verifies.
+  const { trip: polled, error: pollError } = useTripStatus(trip?.id, { intervalMs: 3_000 });
 
-    // Auto-advance
-    if (text.length === 1 && index < 3) {
-      inputRefs.current[index + 1]?.focus();
+  useEffect(() => {
+    if (polled) setTrip(polled);
+  }, [polled, setTrip]);
+
+  const current = polled ?? trip;
+  const otpDigits = (current?.otp ?? '----').split('');
+  const isVerified =
+    current?.status === 'PICKUP_VERIFIED' ||
+    current?.status === 'IN_TRANSIT' ||
+    current?.status === 'DROP_PROGRESS';
+
+  // React to whatever the driver just did. `replace` (not `navigate`) removes
+  // this screen from the stack, so `useTripStatus` stops polling and later
+  // status changes can't drive us forward a second time.
+  useEffect(() => {
+    const status = current?.status;
+    if (status === 'DELIVERED' || status === 'COMPLETED') {
+      navigation?.replace('TripCompletedScreen');
+      return;
     }
-  };
-
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && otp[index] === '' && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    if (status === 'CANCELLED') {
+      navigation?.replace('TripCancelledStatusScreen');
+      return;
     }
-  };
-
-  const handleVerify = () => {
-    const otpString = otp.join('');
-    onVerify?.(otpString);
-  };
+    if (isVerified) {
+      onVerify?.(current?.otp ?? '');
+      navigation?.replace('PickupVerifiedSuccessScreen');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.status, isVerified]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+          accessibilityRole="button"
+        >
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Pickup Verification</Text>
@@ -102,53 +115,32 @@ const PickupOTPVerificationScreen: React.FC<PickupOTPVerificationScreenProps> = 
           </View>
         </View>
 
-        {/* OTP Section */}
+        {/* OTP Section — the engine issues the code to the customer, and the
+            driver submits it, so this displays rather than collects. */}
         <View style={styles.otpSection}>
           <View style={styles.otpHeader}>
             <Text style={styles.otpTitle}>Share your OTP</Text>
             <Text style={styles.otpSubtitle}>
-              Please share this 4-digit code with your driver or enter it below to verify and start your trip.
+              Read this 4-digit code out to your driver. They enter it to confirm pickup.
             </Text>
           </View>
 
           <View style={styles.otpInputContainer}>
-            {otp.map((digit, index) => (
-              <TextInput
-                key={`otp-${index}`}
-                ref={(ref) => { inputRefs.current[index] = ref; }}
-                style={[
-                  styles.otpInput,
-                  isError && styles.otpInputError,
-                  { color: colors.onSurface },
-                ]}
-                value={digit}
-                onChangeText={(text) => handleOtpChange(text, index)}
-                onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="numeric"
-                maxLength={1}
-                placeholder="-"
-                placeholderTextColor={colors.onSurfaceVariant}
-              />
+            {otpDigits.map((digit, index) => (
+              <View key={`otp-${index}`} style={styles.otpDigitBox}>
+                <Text style={styles.otpDigitText}>{digit}</Text>
+              </View>
             ))}
           </View>
 
-          {isError && (
-            <Text style={styles.errorText}>Incorrect OTP. Please try again.</Text>
-          )}
-        </View>
+          <View style={styles.waitingRow}>
+            <ActivityIndicator size="small" color={colors.onSurfaceVariant} />
+            <Text style={styles.waitingText}>
+              {isVerified ? 'Pickup verified' : 'Waiting for the driver to confirm…'}
+            </Text>
+          </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <Button
-            label={isLoading ? "VERIFYING..." : "VERIFY PICKUP OTP"}
-            onPress={handleVerify}
-            variant="primary"
-            fullWidth
-            disabled={isLoading || otp.join('').length < 4}
-          />
-          <Pressable style={styles.resendBtn} onPress={onResend}>
-            <Text style={styles.resendText}>Resend OTP</Text>
-          </Pressable>
+          {pollError && <Text style={styles.errorText}>{pollError.userMessage}</Text>}
         </View>
       </View>
     </SafeAreaView>
@@ -303,16 +295,30 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: spacing.md,
   },
-  otpInput: {
+  otpDigitBox: {
     width: 56,
     height: 64,
     backgroundColor: colors.surfaceVariant,
     borderRadius: borderRadius.md,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpDigitText: {
     fontSize: 24,
     fontWeight: '600',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    color: colors.onSurface,
+    fontFamily: typography.dataMono.fontFamily,
+  },
+  waitingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  waitingText: {
+    fontSize: typography.bodyMd.fontSize,
+    color: colors.onSurfaceVariant,
+    fontFamily: typography.bodyMd.fontFamily,
   },
   otpInputError: {
     borderColor: colors.error,

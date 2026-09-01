@@ -9,8 +9,10 @@
 export const mockUser = {
   name: 'Sarah',
   fullName: 'Sarah Johnson',
-  email: 'sarah.johnson@email.com',
+  email: 'sarah.johnson@example.com',
   phone: '+91 98765 43210',
+  age: '28',
+  address: '123 Sardarpura Main Road, Sardarpura, Jodhpur, Rajasthan',
   avatarUrl: '',
   rating: 4.8,
 } as const;
@@ -156,6 +158,10 @@ export interface TripHistoryItem {
   readonly amount: string;
   readonly status: 'completed' | 'cancelled';
   readonly vehicleType: string;
+  /** Shown on completed trip cards. */
+  readonly paymentMethod?: string;
+  /** Shown on cancelled trip cards in place of the payment method. */
+  readonly cancelReason?: string;
 }
 
 export const mockTrips = [
@@ -185,6 +191,7 @@ export const mockTripHistory: readonly TripHistoryItem[] = [
     amount: '₹529',
     status: 'completed',
     vehicleType: 'Mini Truck',
+    paymentMethod: 'UPI',
   },
   {
     id: 'TRIP-2845',
@@ -194,6 +201,7 @@ export const mockTripHistory: readonly TripHistoryItem[] = [
     amount: '₹199',
     status: 'completed',
     vehicleType: 'Auto',
+    paymentMethod: 'Cash',
   },
   {
     id: 'TRIP-2844',
@@ -203,6 +211,7 @@ export const mockTripHistory: readonly TripHistoryItem[] = [
     amount: '₹89',
     status: 'cancelled',
     vehicleType: 'Bike',
+    cancelReason: 'Cancelled by you',
   },
   {
     id: 'TRIP-2843',
@@ -212,6 +221,7 @@ export const mockTripHistory: readonly TripHistoryItem[] = [
     amount: '₹749',
     status: 'completed',
     vehicleType: 'Truck',
+    paymentMethod: 'UPI',
   },
 ];
 
@@ -265,7 +275,7 @@ export const mockNotifications: readonly NotificationItem[] = [
 
 export interface PaymentMethod {
   readonly id: string;
-  readonly type: 'upi' | 'card' | 'wallet' | 'cash';
+  readonly type: 'upi' | 'card' | 'cash';
   readonly label: string;
   readonly detail: string;
   readonly icon: string;
@@ -291,14 +301,6 @@ export const mockPaymentMethods: readonly PaymentMethod[] = [
   },
   {
     id: '3',
-    type: 'wallet',
-    label: 'Pick Up Wallet',
-    detail: '₹1,250 balance',
-    icon: 'account_balance_wallet',
-    isDefault: false,
-  },
-  {
-    id: '4',
     type: 'cash',
     label: 'Cash',
     detail: 'Pay on delivery',

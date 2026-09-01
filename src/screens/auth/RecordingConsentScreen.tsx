@@ -15,9 +15,10 @@ export interface RecordingConsentScreenProps {
   readonly onNotNow?: () => void;
 }
 
-const RecordingConsentScreen: React.FC<RecordingConsentScreenProps> = ({
+const RecordingConsentScreen: React.FC<RecordingConsentScreenProps & { navigation?: any }> = ({
   onGrantConsent,
   onNotNow,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -25,11 +26,11 @@ const RecordingConsentScreen: React.FC<RecordingConsentScreenProps> = ({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Feather name="truck" size={24} color={colors.primary} />
-          <Text style={styles.headerTitle}>LogiTrack</Text>
+          <Text style={styles.headerTitle}>Pick Up</Text>
         </View>
-        <Pressable style={styles.iconButton}>
+        <View style={styles.iconButton}>
           <Feather name="user" size={24} color={colors.outline} />
-        </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -67,10 +68,22 @@ const RecordingConsentScreen: React.FC<RecordingConsentScreenProps> = ({
           </View>
 
           <View style={styles.actionRow}>
-            <Pressable style={styles.primaryButton} onPress={onGrantConsent}>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => {
+                onGrantConsent?.();
+                navigation?.navigate('CreateProfileScreen');
+              }}
+            >
               <Text style={styles.primaryButtonText}>Grant Consent</Text>
             </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={onNotNow}>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() => {
+                onNotNow?.();
+                navigation?.navigate('CreateProfileScreen');
+              }}
+            >
               <Text style={styles.secondaryButtonText}>Not Now</Text>
             </Pressable>
           </View>

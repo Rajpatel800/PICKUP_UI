@@ -16,9 +16,21 @@ export interface PickupVerifiedSuccessScreenProps {
   readonly onContinue?: () => void;
 }
 
-const PickupVerifiedSuccessScreen: React.FC<PickupVerifiedSuccessScreenProps> = ({
+const PickupVerifiedSuccessScreen: React.FC<PickupVerifiedSuccessScreenProps & { navigation?: any }> = ({
   onContinue,
+  navigation,
 }) => {
+  // Success celebration is a moment, not a stop. `replace` (not `navigate`)
+  // takes this screen off the stack so the customer can't back-swipe into it
+  // once live tracking has begun.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onContinue?.();
+      navigation?.replace('CustomerLiveTrackingScreen');
+    }, 2_500);
+    return () => clearTimeout(timer);
+  }, [onContinue, navigation]);
+
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(20)).current;
@@ -146,7 +158,10 @@ const PickupVerifiedSuccessScreen: React.FC<PickupVerifiedSuccessScreenProps> = 
       >
         <Pressable
           style={styles.continueButton}
-          onPress={onContinue}
+          onPress={() => {
+            onContinue?.();
+            navigation?.navigate('CustomerLiveTrackingScreen');
+          }}
           accessibilityRole="button"
         >
           <Text style={styles.continueButtonText}>TRACK TRIP</Text>

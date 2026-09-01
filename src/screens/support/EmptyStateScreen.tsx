@@ -22,7 +22,7 @@ export interface EmptyStateScreenProps {
   readonly isSecondaryButton?: boolean;
 }
 
-const EmptyStateScreen: React.FC<EmptyStateScreenProps> = ({
+const EmptyStateScreen: React.FC<EmptyStateScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   iconName = 'inbox',
@@ -31,16 +31,23 @@ const EmptyStateScreen: React.FC<EmptyStateScreenProps> = ({
   buttonText,
   onButtonPress,
   isSecondaryButton = false,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Top Navigation */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Precision Mobility</Text>
-        <Pressable style={styles.iconButton} onPress={onHelp}>
+        <Text style={styles.headerTitle}>Pick Up</Text>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+        >
           <Feather name="help-circle" size={24} color={colors.primary} />
         </Pressable>
       </View>
@@ -57,7 +64,7 @@ const EmptyStateScreen: React.FC<EmptyStateScreenProps> = ({
           {buttonText && onButtonPress && (
             <Pressable
               style={isSecondaryButton ? styles.secondaryButton : styles.primaryButton}
-              onPress={onButtonPress}
+              onPress={() => onButtonPress()}
             >
               <Text
                 style={isSecondaryButton ? styles.secondaryButtonText : styles.primaryButtonText}

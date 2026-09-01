@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,21 +10,151 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { Feather } from '@expo/vector-icons';
-import { mockActiveTrip } from '../../data/mockData';
+import { useBooking } from '../../state/BookingContext';
+import { useTripStatus } from '../../hooks/useTripStatus';
+import { getDriver } from '../../api/engine';
+import type { GeoPoint } from '../../api/types';
+import MapCanvas, { type MapMarker } from '../../components/map/MapCanvas';
+import { useRoute } from '../../hooks/useRoute';
 
 export interface CustomerLiveTrackingScreenProps {
   readonly onBack?: () => void;
   readonly onCall?: () => void;
   readonly onChat?: () => void;
-  readonly onShare?: () => void;
 }
 
-const CustomerLiveTrackingScreen: React.FC<CustomerLiveTrackingScreenProps> = ({
+const CustomerLiveTrackingScreen: React.FC<CustomerLiveTrackingScreenProps & { navigation?: any }> = ({
   onBack,
   onCall,
   onChat,
-  onShare,
+  navigation,
 }) => {
+  const { trip, setTrip, assignedDriver } = useBooking();
+
+  // No push channel, so the trip and the driver's position are both polled.
+  const { trip: polled } = useTripStatus(trip?.id);
+  useEffect(() => {
+    if (polled) setTrip(polled);
+  }, [polled, setTrip]);
+
+  const current = polled ?? trip;
+  const driverId = current?.driverId ?? assignedDriver?.id;
+  // Declared up-front because effects below read `status` in their dependency
+  // arrays; a later `const` would be in the temporal dead zone at render time
+  // and Hermes throws "Property 'status' doesn't exist".
+  const status = current?.status;
+
+  // Take the customer through completion the moment the driver finishes.
+  // `replace` swaps this screen out of the stack so back-swipe doesn't return
+  // to live tracking after the trip is done.
+  useEffect(() => {
+    if (!status) return;
+    if (status === 'DELIVERED' || status === 'COMPLETED') {
+      navigation?.replace('TripCompletedScreen');
+    } else if (status === 'CANCELLED') {
+      navigation?.replace('TripCancelledStatusScreen');
+    }
+  }, [status, navigation]);
+  const [driverPoint, setDriverPoint] = useState<GeoPoint | undefined>(
+    assignedDriver
+      ? { latitude: assignedDriver.latitude, longitude: assignedDriver.longitude }
+      : undefined
+  );
+
+  // The engine only exposes the driver's location via GET /drivers/:id, and it
+  // changes when the driver app pushes an update.
+  useEffect(() => {
+    if (!driverId) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      try {
+        const driver = await getDriver(driverId);
+        if (!cancelled) {
+          setDriverPoint({ latitude: driver.latitude, longitude: driver.longitude });
+        }
+      } catch {
+        // Keep the last known position on a transient failure.
+      }
+    };
+
+    void tick();
+    const id = setInterval(tick, 5_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [driverId]);
+
+  const markers = useMemo<readonly MapMarker[]>(() => {
+    const built: MapMarker[] = [];
+    if (current?.pickup) {
+      built.push({ id: 'pickup', kind: 'pickup', coordinate: current.pickup, title: 'Pickup' });
+    }
+    if (current?.drop) {
+      built.push({ id: 'drop', kind: 'drop', coordinate: current.drop, title: 'Drop' });
+    }
+    if (driverPoint) {
+      built.push({
+        id: 'driver',
+        kind: 'driver',
+        coordinate: driverPoint,
+        title: assignedDriver?.name ?? 'Driver',
+        description: assignedDriver?.vehicleType,
+      });
+    }
+    return built;
+  }, [current?.pickup, current?.drop, driverPoint, assignedDriver]);
+
+  // Route always starts from the driver so the polyline shrinks as they close
+  // the distance. Destination flips from pickup to drop once the trip is under
+  // way. `useRoute` rounds coordinates to ~11 m before refetching, so a moving
+  // driver doesn't blow through the Directions quota.
+  const preTransit =
+    status === 'DRIVER_ASSIGNED' || status === 'DRIVER_ARRIVED' || status === 'PICKUP_VERIFIED';
+  const routeDestination = preTransit ? current?.pickup : current?.drop;
+  const roadRoute = useRoute(driverPoint ?? current?.pickup, routeDestination);
+
+  // Short status labels driven off the engine's own trip status. No mocks.
+  const tripHeadline = (() => {
+    switch (status) {
+      case 'DRIVER_ASSIGNED':
+        return 'Driver assigned';
+      case 'DRIVER_ARRIVED':
+        return 'Driver has arrived';
+      case 'PICKUP_VERIFIED':
+        return 'Pickup confirmed';
+      case 'IN_TRANSIT':
+      case 'DROP_PROGRESS':
+        return 'On the way to the drop';
+      case 'DELIVERED':
+      case 'COMPLETED':
+        return 'Trip completed';
+      case 'CANCELLED':
+        return 'Trip cancelled';
+      default:
+        return 'Tracking your trip';
+    }
+  })();
+
+  const tripSubtitle = preTransit
+    ? `Pickup: ${current?.pickup?.address ?? '—'}`
+    : `Drop: ${current?.drop?.address ?? '—'}`;
+
+  // Bar advances as the engine reports progress.
+  const progressPercent: `${number}%` =
+    status === 'DRIVER_ARRIVED'
+      ? '20%'
+      : status === 'PICKUP_VERIFIED'
+      ? '40%'
+      : status === 'IN_TRANSIT'
+      ? '65%'
+      : status === 'DROP_PROGRESS'
+      ? '85%'
+      : status === 'DELIVERED' || status === 'COMPLETED'
+      ? '100%'
+      : '10%';
+
   return (
     <View style={styles.container}>
       {/* Network Offline Banner (Simulated Hidden State) */}
@@ -41,7 +171,7 @@ const CustomerLiveTrackingScreen: React.FC<CustomerLiveTrackingScreenProps> = ({
           <View style={styles.headerLeft}>
             <Pressable
               style={styles.iconButton}
-              onPress={onBack}
+              onPress={() => (onBack ? onBack() : navigation?.goBack())}
               accessibilityRole="button"
             >
               <Feather name="arrow-left" size={24} color={colors.onSurfaceVariant} />
@@ -55,103 +185,81 @@ const CustomerLiveTrackingScreen: React.FC<CustomerLiveTrackingScreenProps> = ({
         </View>
       </SafeAreaView>
 
-      {/* Main Content Area (Map) */}
-      <View style={styles.mapCanvas}>
-        <View style={styles.mockMapPattern} />
-
-        {/* Pickup Marker */}
-        <View style={styles.pickupMarkerContainer}>
-          <View style={styles.pickupMarkerIcon}>
-            <View style={styles.pickupMarkerInner} />
-          </View>
-          <View style={styles.markerLabelContainer}>
-            <Text style={styles.markerLabel}>Pickup</Text>
-          </View>
-        </View>
-
-        {/* Driver Marker (Pulsing) */}
-        <View style={styles.driverMarkerContainer}>
-          <View style={styles.driverMarkerIcon}>
-            <Feather name="truck" size={24} color={colors.onPrimaryContainer} />
-          </View>
-          <View style={styles.driverTimeLabel}>
-            <Text style={styles.driverTimeText}>10s ago</Text>
-          </View>
-        </View>
-
-        {/* Drop 1 Marker */}
-        <View style={styles.drop1MarkerContainer}>
-          <View style={styles.dropMarkerIcon}>
-            <Text style={styles.dropMarkerText}>1</Text>
-          </View>
-        </View>
-
-        {/* Drop 2 Marker */}
-        <View style={styles.drop2MarkerContainer}>
-          <View style={styles.dropMarkerIcon}>
-            <Text style={styles.dropMarkerText}>2</Text>
-          </View>
-        </View>
-      </View>
+      {/* Live map: pickup, drop and the driver's last reported position. */}
+      <MapCanvas
+        style={styles.mapCanvas}
+        markers={markers}
+        fitToMarkers={markers.length > 1}
+        polyline={roadRoute}
+      />
 
       {/* Bottom Overlay Container */}
       <View style={styles.bottomOverlay}>
         <SafeAreaView edges={['bottom']} style={styles.safeArea}>
           <View style={styles.tripStatusCard}>
             <View style={styles.tripStatusHeader}>
-              <View>
-                <Text style={styles.tripStatusTitle}>Drop 1 of 3</Text>
-                <Text style={styles.tripStatusSubtitle}>
-                  Arriving at Ratanada Hub in <Text style={styles.tripStatusHighlight}>8 mins</Text>
-                </Text>
-              </View>
-              <View style={styles.onTimeBadge}>
-                <Feather name="clock" size={14} color={colors.onSecondaryContainer} />
-                <Text style={styles.onTimeText}>On time</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tripStatusTitle}>{tripHeadline}</Text>
+                {current?.drop?.address && (
+                  <Text style={styles.tripStatusSubtitle} numberOfLines={1}>
+                    {tripSubtitle}
+                  </Text>
+                )}
               </View>
             </View>
 
-            {/* Progress Bar */}
+            {/* Coarse progress bar driven off the trip status. */}
             <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarFill, { width: '33%' }]} />
+              <View style={[styles.progressBarFill, { width: progressPercent }]} />
             </View>
 
             <View style={styles.driverDetailsContainer}>
               <View style={styles.driverDetailsHeader}>
                 <View style={styles.driverInfoLeft}>
                   <View style={styles.driverAvatarContainer}>
-                    <Image
-                      source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAYxDfKWkql2FzNNKIvWwllsFCfV1EJB7hgJVlqQnN2zZddz3ghiCKWVDPh6vT148pwJsJ0-t5hQSMLgWIHA3fI_whpumXXal41ET6rm3ikc97ewMjgK5AZOILyLBCP0RwitS2uFtAJopxWPD_mEAW3OhDHhUjFnO4YAMnjz8EFhTi-xIzHpBZ7mrAqYjbRfs4o0ee3MtFxJYBk6QexvPED286SMZgBwsNy4MFskQGuwA6B2Nj5kG4W' }}
-                      style={styles.driverAvatar}
-                    />
+                    <Feather name="user" size={22} color={colors.onSurfaceVariant} />
                   </View>
                   <View>
-                    <Text style={styles.driverName}>{mockActiveTrip.driverName}</Text>
-                    <View style={styles.driverSubInfo}>
-                      <Feather name="star" size={12} color={colors.tertiary} />
-                      <Text style={styles.driverSubInfoText}>
-                        {mockActiveTrip.driverRating} • {mockActiveTrip.vehicleType}
-                      </Text>
-                    </View>
+                    <Text style={styles.driverName}>
+                      {assignedDriver?.name ?? 'Your driver'}
+                    </Text>
+                    {assignedDriver?.vehicleType && (
+                      <View style={styles.driverSubInfo}>
+                        <Feather name="truck" size={12} color={colors.onSurfaceVariant} />
+                        <Text style={styles.driverSubInfoText}>
+                          {assignedDriver.vehicleType}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
-                <View style={styles.licensePlateBadge}>
-                  <Text style={styles.licensePlateText}>{mockActiveTrip.vehicleNumber}</Text>
-                </View>
+                {typeof assignedDriver?.distanceKm === 'number' && (
+                  <View style={styles.licensePlateBadge}>
+                    <Text style={styles.licensePlateText}>
+                      {assignedDriver.distanceKm.toFixed(1)} km
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {/* Actions */}
+              {/* The trip is ended by the driver in-app; customer only calls or
+                  chats. Cancellation is available from the header back path. */}
               <View style={styles.actionsContainer}>
-                <Pressable style={styles.actionButton} onPress={onCall}>
+                <Pressable
+                  style={styles.actionButton}
+                  onPress={() => (onCall ? onCall() : navigation?.navigate('CallDriverScreen'))}
+                  accessibilityRole="button"
+                >
                   <Feather name="phone" size={18} color={colors.onSurface} />
                   <Text style={styles.actionButtonText}>Call</Text>
                 </Pressable>
-                <Pressable style={styles.actionButton} onPress={onChat}>
+                <Pressable
+                  style={styles.actionButton}
+                  onPress={() => (onChat ? onChat() : navigation?.navigate('ActiveTripChatScreen'))}
+                  accessibilityRole="button"
+                >
                   <Feather name="message-circle" size={18} color={colors.onSurface} />
                   <Text style={styles.actionButtonText}>Chat</Text>
-                </Pressable>
-                <Pressable style={styles.iconOnlyButton} onPress={onShare}>
-                  <Feather name="share-2" size={20} color={colors.onSurface} />
                 </Pressable>
               </View>
             </View>

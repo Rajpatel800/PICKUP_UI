@@ -15,10 +15,11 @@ export interface CancellationResultScreenProps {
   readonly onHome?: () => void;
 }
 
-const CancellationResultScreen: React.FC<CancellationResultScreenProps> = ({
+const CancellationResultScreen: React.FC<CancellationResultScreenProps & { navigation?: any }> = ({
   tripId = '#TRP-8472-X',
   feeAmount = '₹112.50',
   onHome,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -58,7 +59,7 @@ const CancellationResultScreen: React.FC<CancellationResultScreenProps> = ({
         <View style={styles.actionContainer}>
           <Button
             label="BACK TO HOME"
-            onPress={() => onHome?.()}
+            onPress={() => (onHome ? onHome() : navigation?.navigate('HomeScreen'))}
             variant="primary"
             fullWidth
             size="lg"

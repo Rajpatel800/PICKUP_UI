@@ -18,10 +18,11 @@ export interface DropCompletedStateScreenProps {
   readonly onTrackNextStop?: () => void;
 }
 
-const DropCompletedStateScreen: React.FC<DropCompletedStateScreenProps> = ({
+const DropCompletedStateScreen: React.FC<DropCompletedStateScreenProps & { navigation?: any }> = ({
   onBack,
   onHelp,
   onTrackNextStop,
+  navigation,
 }) => {
   const currentDrop = mockActiveTrip.stops[1]; // Drop 1 in the data
   const nextDrop = mockActiveTrip.stops[2]; // Drop 2 in the data
@@ -32,13 +33,17 @@ const DropCompletedStateScreen: React.FC<DropCompletedStateScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
         >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Trip Progress</Text>
-        <Pressable style={styles.helpButton} onPress={onHelp} accessibilityRole="button">
+        <Pressable
+          style={styles.helpButton}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
+          accessibilityRole="button"
+        >
           <Text style={styles.helpButtonText}>Help</Text>
         </Pressable>
       </View>
@@ -103,12 +108,25 @@ const DropCompletedStateScreen: React.FC<DropCompletedStateScreenProps> = ({
             <Text style={styles.nextStopTitle}>Drop 2: {nextDrop.address}</Text>
             <Text style={styles.nextStopSubtitle}>Est. 12 mins away (4.2 km)</Text>
 
-            <Pressable style={styles.trackButton} onPress={onTrackNextStop}>
+            <Pressable
+              style={styles.trackButton}
+              onPress={() => (onTrackNextStop ? onTrackNextStop() : navigation?.navigate('NextDropScreen'))}
+              accessibilityRole="button"
+            >
               <Text style={styles.trackButtonText}>Track Next Stop</Text>
               <Feather name="navigation" size={20} color={colors.onPrimary} />
             </Pressable>
           </View>
         )}
+
+        {/* Always-available route to the trip summary */}
+        <Pressable
+          style={styles.summaryButton}
+          onPress={() => navigation?.navigate('FinalDeliverySummaryScreen')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.summaryButtonText}>VIEW DELIVERY SUMMARY</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -317,6 +335,24 @@ const styles = StyleSheet.create({
     fontSize: typography.headlineSm.fontSize,
     fontWeight: typography.headlineSm.fontWeight,
     color: colors.onPrimary,
+    fontFamily: typography.headlineSm.fontFamily,
+  },
+
+  // Secondary (outline) CTA
+  summaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  summaryButtonText: {
+    fontSize: typography.headlineSm.fontSize,
+    fontWeight: typography.headlineSm.fontWeight,
+    color: colors.primary,
     fontFamily: typography.headlineSm.fontFamily,
   },
 });

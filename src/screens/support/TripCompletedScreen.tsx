@@ -3,7 +3,6 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius, typography, shadows } from '../../theme';
 import { strings, mockActiveTrip } from '../../data/mockData';
-import TopAppBar from '../../components/organisms/TopAppBar';
 import Card from '../../components/molecules/Card';
 import ListRow from '../../components/molecules/ListRow';
 import Divider from '../../components/atoms/Divider';
@@ -14,9 +13,10 @@ export interface TripCompletedScreenProps {
   readonly onWriteReview?: () => void;
 }
 
-const TripCompletedScreen: React.FC<TripCompletedScreenProps> = ({
+const TripCompletedScreen: React.FC<TripCompletedScreenProps & { navigation?: any }> = ({
   onDone,
   onWriteReview,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -95,14 +95,19 @@ const TripCompletedScreen: React.FC<TripCompletedScreenProps> = ({
       <View style={styles.footer}>
         <Button
           label="Write a Review"
-          onPress={onWriteReview ?? (() => {})}
+          onPress={() =>
+            onWriteReview ? onWriteReview() : navigation?.navigate('DriverRatingScreen')
+          }
           variant="outline"
           size="lg"
           fullWidth
         />
         <Button
           label="Done"
-          onPress={onDone ?? (() => {})}
+          onPress={() => {
+            onDone?.();
+            navigation?.navigate('TripCompletedSummaryScreen');
+          }}
           variant="primary"
           size="lg"
           fullWidth

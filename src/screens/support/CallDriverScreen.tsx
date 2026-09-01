@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,15 +21,18 @@ export interface CallDriverScreenProps {
   readonly onBack?: () => void;
 }
 
-const CallDriverScreen: React.FC<CallDriverScreenProps> = ({
+const CallDriverScreen: React.FC<CallDriverScreenProps & { navigation?: any }> = ({
   driverName = 'Ramesh Kumar',
   vehicleInfo = 'Tata Ace • RJ 19 XX 1234',
   pickupLocation = 'Sardarpura Warehouse',
   onEndCall,
   onBack,
+  navigation,
 }) => {
   const ripple1 = useRef(new Animated.Value(0)).current;
   const ripple2 = useRef(new Animated.Value(0)).current;
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
 
   useEffect(() => {
     const createRipple = (anim: Animated.Value, delay: number) => {
@@ -56,7 +59,10 @@ const CallDriverScreen: React.FC<CallDriverScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* App Bar */}
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={onBack}>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
+        >
           <Feather name="arrow-left" size={24} color={colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Pick Up</Text>
@@ -156,21 +162,33 @@ const CallDriverScreen: React.FC<CallDriverScreenProps> = ({
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
             <View style={styles.secondaryActions}>
-              <Pressable style={styles.callControlBtn}>
+              <Pressable
+                style={styles.callControlBtn}
+                onPress={() => setIsMuted((prev) => !prev)}
+                accessibilityRole="switch"
+                accessibilityLabel="Mute"
+                accessibilityState={{ checked: isMuted }}
+              >
                 <View style={styles.callControlIconBox}>
                   <Feather name="mic-off" size={24} color={colors.onSurfaceVariant} />
                 </View>
                 <Text style={styles.callControlLabel}>Mute</Text>
               </Pressable>
               
-              <Pressable style={styles.callControlBtn}>
+              <View style={styles.callControlBtn}>
                 <View style={styles.callControlIconBox}>
                   <Feather name="grid" size={24} color={colors.onSurfaceVariant} />
                 </View>
                 <Text style={styles.callControlLabel}>Keypad</Text>
-              </Pressable>
+              </View>
               
-              <Pressable style={styles.callControlBtn}>
+              <Pressable
+                style={styles.callControlBtn}
+                onPress={() => setIsSpeakerOn((prev) => !prev)}
+                accessibilityRole="switch"
+                accessibilityLabel="Speaker"
+                accessibilityState={{ checked: isSpeakerOn }}
+              >
                 <View style={styles.callControlIconBox}>
                   <Feather name="volume-2" size={24} color={colors.onSurfaceVariant} />
                 </View>
@@ -178,7 +196,10 @@ const CallDriverScreen: React.FC<CallDriverScreenProps> = ({
               </Pressable>
             </View>
 
-            <Pressable style={styles.endCallBtn} onPress={onEndCall}>
+            <Pressable
+              style={styles.endCallBtn}
+              onPress={() => (onEndCall ? onEndCall() : navigation?.goBack())}
+            >
               <MaterialIcons name="call-end" size={24} color={colors.onErrorContainer} />
               <Text style={styles.endCallText}>End Call</Text>
             </Pressable>

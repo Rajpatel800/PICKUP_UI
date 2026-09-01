@@ -19,10 +19,11 @@ export interface VehicleSelectionScreenProps {
   readonly onHelp?: () => void;
 }
 
-const VehicleSelectionScreen: React.FC<VehicleSelectionScreenProps> = ({
+const VehicleSelectionScreen: React.FC<VehicleSelectionScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
   onHelp,
+  navigation,
 }) => {
   const [selectedId, setSelectedId] = useState<string>('mini-truck');
 
@@ -34,7 +35,7 @@ const VehicleSelectionScreen: React.FC<VehicleSelectionScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -43,7 +44,7 @@ const VehicleSelectionScreen: React.FC<VehicleSelectionScreenProps> = ({
         <Text style={styles.headerTitle}>{strings.booking.selectVehicle}</Text>
         <Pressable
           style={styles.helpButton}
-          onPress={onHelp}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
           accessibilityRole="button"
           accessibilityLabel="Help"
         >
@@ -121,7 +122,10 @@ const VehicleSelectionScreen: React.FC<VehicleSelectionScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.continueButton}
-          onPress={() => onContinue?.(selectedId)}
+          onPress={() => {
+            onContinue?.(selectedId);
+            navigation?.navigate('GoodsDetailsScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Continue"
         >

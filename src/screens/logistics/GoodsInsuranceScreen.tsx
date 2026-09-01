@@ -17,10 +17,11 @@ export interface GoodsInsuranceScreenProps {
   readonly onHelp?: () => void;
 }
 
-const GoodsInsuranceScreen: React.FC<GoodsInsuranceScreenProps> = ({
+const GoodsInsuranceScreen: React.FC<GoodsInsuranceScreenProps & { navigation?: any }> = ({
   onBack,
   onContinue,
   onHelp,
+  navigation,
 }) => {
   const [declaredValue, setDeclaredValue] = useState('50,000');
   const [isInsured, setIsInsured] = useState(false);
@@ -31,7 +32,7 @@ const GoodsInsuranceScreen: React.FC<GoodsInsuranceScreenProps> = ({
       <View style={styles.header}>
         <Pressable
           style={styles.iconButton}
-          onPress={onBack}
+          onPress={() => (onBack ? onBack() : navigation?.goBack())}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -40,7 +41,7 @@ const GoodsInsuranceScreen: React.FC<GoodsInsuranceScreenProps> = ({
         <Text style={styles.headerTitle}>Goods Insurance</Text>
         <Pressable
           style={styles.iconButton}
-          onPress={onHelp}
+          onPress={() => (onHelp ? onHelp() : navigation?.navigate('ActiveTripChatScreen'))}
           accessibilityRole="button"
           accessibilityLabel="Help"
         >
@@ -131,7 +132,10 @@ const GoodsInsuranceScreen: React.FC<GoodsInsuranceScreenProps> = ({
       <View style={styles.bottomBar}>
         <Pressable
           style={styles.continueButton}
-          onPress={onContinue}
+          onPress={() => {
+            onContinue?.();
+            navigation?.navigate('ReceiverDetailsScreen');
+          }}
           accessibilityRole="button"
           accessibilityLabel="Continue"
         >

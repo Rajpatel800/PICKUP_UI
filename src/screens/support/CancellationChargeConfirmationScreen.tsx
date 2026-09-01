@@ -16,11 +16,12 @@ export interface CancellationChargeConfirmationScreenProps {
   readonly onKeepTrip?: () => void;
 }
 
-const CancellationChargeConfirmationScreen: React.FC<CancellationChargeConfirmationScreenProps> = ({
+const CancellationChargeConfirmationScreen: React.FC<CancellationChargeConfirmationScreenProps & { navigation?: any }> = ({
   feeAmount = '₹112.50',
   policyText = 'A cancellation fee applies because the driver is close to your pickup location, as per the current cancellation policy.',
   onCancelAccept,
   onKeepTrip,
+  navigation,
 }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -60,13 +61,16 @@ const CancellationChargeConfirmationScreen: React.FC<CancellationChargeConfirmat
           <View style={styles.actionsContainer}>
             <Pressable
               style={[styles.customButton, styles.cancelButton]}
-              onPress={() => onCancelAccept?.()}
+              onPress={() => {
+                onCancelAccept?.();
+                navigation?.navigate('CancellationConfirmationScreen');
+              }}
             >
               <Text style={styles.cancelButtonText}>CANCEL & ACCEPT CHARGE</Text>
             </Pressable>
             <Pressable
               style={[styles.customButton, styles.keepButton]}
-              onPress={() => onKeepTrip?.()}
+              onPress={() => (onKeepTrip ? onKeepTrip() : navigation?.goBack())}
             >
               <Text style={styles.keepButtonText}>KEEP TRIP</Text>
             </Pressable>
