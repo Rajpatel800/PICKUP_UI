@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "102460741519",
+    "project_id": "pickup-7fabe",
+    "storage_bucket": "pickup-7fabe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102460741519:android:7609b4a6d572cbeb525dfa",
+        "android_client_info": {
+          "package_name": "com.pickup.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaJShhgBzIQEaUIWBlfxUZ5oNc0UVDuDs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
