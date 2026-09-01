@@ -9,9 +9,10 @@ Branches:
 - `UIwithEngine` — UI integrated with the real engine (**you are here**). Live
   maps, real fare/driver/trip APIs, GPS pickup, live tracking.
 
-The Android driver app (`pickup-driver/`) is a separate Expo project used only
-for internal testing. It is **not** part of this repository; ask the project
-owner for it directly if you need to test the driver side.
+The driver app (`pickup-driver/`) is a separate Expo project used only for
+internal testing until the production driver UI is ready. It lives inside this
+repo so `git clone` gives you both apps at once. It has its own `package.json`,
+its own `.env`, and its own Expo instance on port 8082.
 
 ## Prerequisites
 
@@ -98,12 +99,36 @@ The bundle will download once (30-60 s over tunnel) and the app opens.
 - If you edit `.env`, restart `npm run start` — env vars are baked at Metro
   boot, not hot-reloaded.
 
+## Running the driver app
+
+The customer app is useless without an online driver, and simulating one from
+the terminal is fine for API tests but not for end-to-end UX. Use the real
+driver app on a second phone:
+
+```bash
+cd pickup-driver
+npm install
+copy ..\.env .env         # Windows — reuse the same URL and Maps key
+cp ../.env .env           # macOS / Linux
+npm run start -- --tunnel --port 8082
+```
+
+The `--port 8082` matters — the customer app runs Metro on 8081, so the driver
+app needs its own port to avoid a collision. A separate QR appears; scan it
+from Expo Go **on a different phone** (or a second Expo Go install on the same
+phone works too).
+
+On the driver app: pick a Driver ID (auto-randomised, or override in the
+input field), hit **GO ONLINE**, allow location permission. Within a few
+seconds you should appear as a truck marker on the customer's home map.
+
 ## Testing the full flow
 
 The engine has no seed data. To see anything meaningful:
 
 1. **Someone must be online as a driver.** Options:
-   - Run the driver app (`pickup-driver/`, ask the owner).
+   - Run the driver app on a second phone (see
+     [Running the driver app](#running-the-driver-app)).
    - Or run the driver simulator: `powershell scripts/driver-sim.ps1` from the
      project root. This impersonates a driver via engine APIs so you can test
      matching / assignment from the customer app alone.
